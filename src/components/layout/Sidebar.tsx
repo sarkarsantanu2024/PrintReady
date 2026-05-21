@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LogOut, PenSquare, Upload } from 'lucide-react';
+import { LogOut, PenSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Logo } from '@/components/shared/Logo';
 import { UsageMeter } from '@/components/shared/UsageMeter';
@@ -8,7 +8,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/store/authStore';
 
 const navItems = [
-  { to: '/app/upload', label: 'Upload', icon: Upload },
   { to: '/app/editor', label: 'Editor', icon: PenSquare },
 ];
 

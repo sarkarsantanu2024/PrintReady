@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LogOut, PenSquare, Upload } from 'lucide-react';
+import { LogOut, PenSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
 
 const items = [
-  { to: '/app/upload', label: 'Upload', icon: Upload },
   { to: '/app/editor', label: 'Editor', icon: PenSquare },
 ];
 
@@ -41,7 +40,7 @@ export function BottomNav() {
         hidden ? 'translate-y-full' : 'translate-y-0',
       )}
     >
-      <div className="grid grid-cols-3">
+      <div className="grid grid-cols-2">
         {items.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}

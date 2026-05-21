@@ -9,6 +9,10 @@ interface DropZoneProps {
   onAccepted: (files: File[]) => void;
   maxSizeBytes: number;
   multiple?: boolean;
+  /** Optional cap on simultaneous selections (forwarded to react-dropzone). */
+  maxFiles?: number;
+  /** Optional override for the accept map (defaults to the full print-ready set). */
+  accept?: Record<string, string[]>;
   /** Disabled message when plan doesn't allow uploads of this type. */
   disabled?: boolean;
   hint?: string;
@@ -29,6 +33,8 @@ export function DropZone({
   onAccepted,
   maxSizeBytes,
   multiple = false,
+  maxFiles,
+  accept,
   disabled = false,
   hint,
 }: DropZoneProps) {
@@ -49,9 +55,10 @@ export function DropZone({
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
-    accept: ACCEPT,
+    accept: accept ?? ACCEPT,
     maxSize: maxSizeBytes,
     multiple,
+    maxFiles,
     disabled,
   });
 
