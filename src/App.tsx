@@ -21,7 +21,6 @@ import NotFound from '@/pages/public/NotFound';
 
 // Lazy: app routes pull in pdf-lib / @react-pdf / pdfjs which are heavy.
 const Editor = lazy(() => import('@/pages/app/Editor'));
-const Upload = lazy(() => import('@/pages/app/Upload'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -58,17 +57,8 @@ function AppRoutes() {
         <Route path="/reset-password" element={<ResetPassword />} />
 
         {/* App (protected) */}
-        <Route path="/app" element={<Navigate to="/app/upload" replace />} />
-        <Route
-          path="/app/upload"
-          element={
-            <RequireAuth>
-              <Suspense fallback={<RouteFallback />}>
-                <Upload />
-              </Suspense>
-            </RequireAuth>
-          }
-        />
+        <Route path="/app" element={<Navigate to="/app/editor" replace />} />
+        <Route path="/app/upload" element={<Navigate to="/" replace />} />
         <Route
           path="/app/editor"
           element={
