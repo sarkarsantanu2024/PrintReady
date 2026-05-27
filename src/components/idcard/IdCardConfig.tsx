@@ -1,9 +1,9 @@
-import { useRef } from 'react';
-import { Upload as UploadIcon, X } from 'lucide-react';
-import { Card } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import type { IdCardLayout } from '@/lib/idcard/layout';
+import { useRef } from "react";
+import { Upload as UploadIcon, X } from "lucide-react";
+import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import type { IdCardLayout } from "@/lib/idcard/layout";
 
 interface Props {
   layout: IdCardLayout;
@@ -17,9 +17,9 @@ interface Props {
 export function IdCardConfig({ layout, onChange }: Props) {
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const setHeader = <K extends keyof IdCardLayout['header']>(
+  const setHeader = <K extends keyof IdCardLayout["header"]>(
     k: K,
-    v: IdCardLayout['header'][K],
+    v: IdCardLayout["header"][K],
   ) => onChange({ ...layout, header: { ...layout.header, [k]: v } });
 
   const onLogoFile = async (file: File) => {
@@ -36,18 +36,24 @@ export function IdCardConfig({ layout, onChange }: Props) {
       img.onload = res;
       img.onerror = rej;
     });
-    const canvas = document.createElement('canvas');
+    const canvas = document.createElement("canvas");
     canvas.width = img.naturalWidth;
     canvas.height = img.naturalHeight;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.drawImage(img, 0, 0);
-    const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/png'));
+    const blob = await new Promise<Blob | null>((res) =>
+      canvas.toBlob(res, "image/png"),
+    );
     if (!blob) return;
     const png = new Uint8Array(await blob.arrayBuffer());
     onChange({
       ...layout,
-      header: { ...layout.header, logoPng: png, logoDataUrl: canvas.toDataURL('image/png') },
+      header: {
+        ...layout.header,
+        logoPng: png,
+        logoDataUrl: canvas.toDataURL("image/png"),
+      },
     });
   };
 
@@ -58,8 +64,8 @@ export function IdCardConfig({ layout, onChange }: Props) {
           Header branding
         </h3>
         <p className="mt-1 text-xs text-muted-foreground">
-          Card size, photo size and typography are fixed so 8 cards fill an A4 sheet with a
-          5 mm outer margin. Only the header content is editable.
+          Card size, photo size and typography are fixed so 8 cards fill an A4
+          sheet with a 5 mm outer margin. Only the header content is editable.
         </p>
       </div>
 
@@ -67,12 +73,15 @@ export function IdCardConfig({ layout, onChange }: Props) {
         <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-md border bg-muted/40">
           {layout.header.logoDataUrl ? (
             // eslint-disable-next-line jsx-a11y/alt-text
-            <img src={layout.header.logoDataUrl} className="h-full w-full object-contain" />
+            <img
+              src={layout.header.logoDataUrl}
+              className="h-full w-full object-contain"
+            />
           ) : (
             <span className="text-[10px] text-muted-foreground">No logo</span>
           )}
         </div>
-        <div className="flex flex-col gap-2">
+        <div className="flex gap-2">
           <Button
             type="button"
             variant="outline"
@@ -89,7 +98,11 @@ export function IdCardConfig({ layout, onChange }: Props) {
               onClick={() =>
                 onChange({
                   ...layout,
-                  header: { ...layout.header, logoPng: null, logoDataUrl: null },
+                  header: {
+                    ...layout.header,
+                    logoPng: null,
+                    logoDataUrl: null,
+                  },
                 })
               }
             >
@@ -104,7 +117,7 @@ export function IdCardConfig({ layout, onChange }: Props) {
             onChange={(e) => {
               const f = e.target.files?.[0];
               if (f) void onLogoFile(f);
-              e.target.value = '';
+              e.target.value = "";
             }}
           />
         </div>
@@ -113,29 +126,29 @@ export function IdCardConfig({ layout, onChange }: Props) {
       <TextField
         label="Company name"
         value={layout.header.companyName}
-        onChange={(v) => setHeader('companyName', v)}
+        onChange={(v) => setHeader("companyName", v)}
       />
       <TextField
         label="Tagline"
         value={layout.header.tagline}
-        onChange={(v) => setHeader('tagline', v)}
+        onChange={(v) => setHeader("tagline", v)}
       />
       <TextField
         label="Website"
         value={layout.header.website}
-        onChange={(v) => setHeader('website', v)}
+        onChange={(v) => setHeader("website", v)}
       />
 
       <div className="grid grid-cols-2 gap-3">
         <ColorField
           label="Header background"
           value={layout.header.bgColor}
-          onChange={(v) => setHeader('bgColor', v)}
+          onChange={(v) => setHeader("bgColor", v)}
         />
         <ColorField
           label="Header text"
           value={layout.header.textColor}
-          onChange={(v) => setHeader('textColor', v)}
+          onChange={(v) => setHeader("textColor", v)}
         />
       </div>
     </Card>

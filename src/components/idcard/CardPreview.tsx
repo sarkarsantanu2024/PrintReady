@@ -1,5 +1,5 @@
-import type { IdCardLayout } from '@/lib/idcard/layout';
-import type { ExtractedIdCard } from '@/lib/idcard/types';
+import type { IdCardLayout } from "@/lib/idcard/layout";
+import type { ExtractedIdCard } from "@/lib/idcard/types";
 
 interface Props {
   layout: IdCardLayout;
@@ -34,7 +34,7 @@ export function CardPreview({ layout, sample, pxPerMm = 4 }: Props) {
     >
       {/* Header */}
       <div
-        className="flex items-center gap-2"
+        className="flex items-center gap-4"
         style={{
           height: headerH,
           background: layout.header.bgColor,
@@ -46,7 +46,11 @@ export function CardPreview({ layout, sample, pxPerMm = 4 }: Props) {
           // eslint-disable-next-line jsx-a11y/alt-text
           <img
             src={layout.header.logoDataUrl}
-            style={{ height: headerH - 4 * pxPerMm, width: 'auto', objectFit: 'contain' }}
+            style={{
+              height: headerH - 4 * pxPerMm,
+              width: "auto",
+              objectFit: "contain",
+            }}
           />
         )}
         <div className="flex min-w-0 flex-col leading-tight">
@@ -66,7 +70,10 @@ export function CardPreview({ layout, sample, pxPerMm = 4 }: Props) {
           )}
           {layout.header.website && (
             <span
-              style={{ fontSize: (layout.nameSize - 3) * 1.2, fontStyle: 'italic' }}
+              style={{
+                fontSize: (layout.nameSize - 3) * 1.2,
+                fontStyle: "italic",
+              }}
               className="truncate opacity-95"
             >
               {layout.header.website}
@@ -81,9 +88,9 @@ export function CardPreview({ layout, sample, pxPerMm = 4 }: Props) {
           style={{
             width: photoW,
             height: photoH,
-            background: '#eef0f3',
+            background: "#eef0f3",
             border: `1px solid ${layout.cardBorderColor}`,
-            overflow: 'hidden',
+            overflow: "hidden",
             flexShrink: 0,
           }}
         >
@@ -91,7 +98,7 @@ export function CardPreview({ layout, sample, pxPerMm = 4 }: Props) {
             // eslint-disable-next-line jsx-a11y/alt-text
             <img
               src={photoSrc}
-              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+              style={{ width: "100%", height: "100%", objectFit: "contain" }}
             />
           )}
         </div>
@@ -175,7 +182,7 @@ function Field({
           color: labelColor,
           fontWeight: 700,
           letterSpacing: 0.4,
-          textTransform: 'uppercase',
+          textTransform: "uppercase",
           lineHeight: 1.1,
         }}
       >
@@ -187,12 +194,12 @@ function Field({
           color: valueColor,
           fontWeight: bold ? 700 : 500,
           lineHeight: 1.15,
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
         }}
       >
-        {value || '—'}
+        {value || "—"}
       </div>
     </div>
   );
@@ -202,7 +209,9 @@ const urlCache = new WeakMap<Uint8Array, string>();
 function bytesToObjectUrl(bytes: Uint8Array): string {
   const cached = urlCache.get(bytes);
   if (cached) return cached;
-  const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: 'image/png' }));
+  const url = URL.createObjectURL(
+    new Blob([bytes as BlobPart], { type: "image/png" }),
+  );
   urlCache.set(bytes, url);
   return url;
 }
