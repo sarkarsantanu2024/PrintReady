@@ -35,7 +35,7 @@ export function UsageMeter({ className, compact }: UsageMeterProps) {
           style={{ width: `${pct}%` }}
         />
       </div>
-      {(warn || danger) && data.plan !== 'platinum' && (
+      {(warn || danger) && data.plan !== 'enterprise' && (
         <Link
           to="/pricing"
           className="mt-2 inline-flex items-center gap-1 text-[11px] font-medium text-primary hover:underline"

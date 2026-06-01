@@ -19,9 +19,11 @@ interface ConfigPanelProps {
 }
 
 const planMaxCopies: Record<Plan, number | null> = {
-  silver: 8,
-  gold: 30,
-  platinum: null,
+  free: 8,
+  starter: 8,
+  business: 30,
+  pro: null,
+  enterprise: null,
 };
 
 export function ConfigPanel({ options, onChange, plan, onBestFit }: ConfigPanelProps) {

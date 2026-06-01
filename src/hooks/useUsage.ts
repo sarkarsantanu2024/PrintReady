@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase, type IncrementResult, type UsageInfo } from '@/lib/supabase';
+import { supabase, PLAN_LIMITS, type IncrementResult, type UsageInfo } from '@/lib/supabase';
 import { useAuth } from './useAuth';
 
 const QUERY_KEY = ['usage'];
@@ -22,7 +22,7 @@ export function useUsage() {
     placeholderData: profile
       ? {
           used: 0,
-          limit: profile.plan === 'silver' ? 5 : profile.plan === 'gold' ? 15 : 20,
+          limit: PLAN_LIMITS[profile.plan] ?? PLAN_LIMITS.free,
           plan: profile.plan,
         }
       : undefined,

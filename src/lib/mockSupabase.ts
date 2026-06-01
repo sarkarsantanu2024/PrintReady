@@ -13,7 +13,7 @@
  * those listed above.
  */
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { Plan } from './supabase';
+import { PLAN_LIMITS, type Plan } from './supabase';
 
 // ---------- storage ----------
 const K_USERS = 'printready:mock:users';
@@ -54,8 +54,6 @@ interface MockSession {
   expires_in: number;
   token_type: 'bearer';
 }
-
-const PLAN_LIMITS: Record<Plan, number> = { silver: 5, gold: 15, platinum: 20 };
 
 function read<T>(key: string, fallback: T): T {
   try {
@@ -115,7 +113,7 @@ const auth = {
     const profile: StoredProfile = {
       id,
       full_name: args.options?.data?.full_name ?? null,
-      plan: args.options?.data?.plan ?? 'silver',
+      plan: args.options?.data?.plan ?? 'free',
       created_at: new Date().toISOString(),
     };
     const profiles = read<StoredProfile[]>(K_PROFILES, []);
@@ -158,7 +156,7 @@ const auth = {
     provider: string;
     options?: { redirectTo?: string };
   }) {
-    // Demo: silently sign in as a Google demo user with platinum plan so the
+    // Demo: silently sign in as a Google demo user with enterprise plan so the
     // demo flows feel uncapped. Persists across page reloads like a real OAuth login.
     const profiles = read<StoredProfile[]>(K_PROFILES, []);
     const id = uuid();
@@ -166,7 +164,7 @@ const auth = {
     const profile: StoredProfile = {
       id,
       full_name: 'Google Demo User',
-      plan: 'platinum',
+      plan: 'enterprise',
       created_at: new Date().toISOString(),
     };
     profiles.push(profile);
@@ -282,7 +280,7 @@ async function rpc(fn: string, args: Record<string, unknown>) {
     const userId = args.p_user_id as string;
     const profiles = read<StoredProfile[]>(K_PROFILES, []);
     const profile = profiles.find((p) => p.id === userId);
-    const plan = profile?.plan ?? 'silver';
+    const plan = profile?.plan ?? 'free';
     const limit = PLAN_LIMITS[plan];
     const usage = read<StoredUsage[]>(K_USAGE, []);
     const u = usage.find((x) => x.user_id === userId && x.period === period());
@@ -293,7 +291,7 @@ async function rpc(fn: string, args: Record<string, unknown>) {
     const count = (args.p_count as number) ?? 1;
     const profiles = read<StoredProfile[]>(K_PROFILES, []);
     const profile = profiles.find((p) => p.id === userId);
-    const plan = profile?.plan ?? 'silver';
+    const plan = profile?.plan ?? 'free';
     const limit = PLAN_LIMITS[plan];
     const usage = read<StoredUsage[]>(K_USAGE, []);
     const p = period();

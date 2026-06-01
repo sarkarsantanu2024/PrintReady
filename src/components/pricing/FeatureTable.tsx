@@ -5,23 +5,26 @@ type Cell = boolean | string;
 
 interface Row {
   label: string;
-  silver: Cell;
-  gold: Cell;
-  platinum: Cell;
+  free: Cell;
+  starter: Cell;
+  business: Cell;
+  pro: Cell;
+  enterprise: Cell;
 }
 
 const rows: Row[] = [
-  { label: 'Generations / month', silver: '5', gold: '15', platinum: '20' },
-  { label: 'Editor layouts (ID, Business Card, Certificate)', silver: true, gold: true, platinum: true },
-  { label: 'Upload flow', silver: 'Single file', gold: 'Single + multi', platinum: 'Multi-file batch' },
-  { label: 'Max upload size', silver: '10 MB', gold: '25 MB', platinum: '50 MB' },
-  { label: 'Bulk CSV mode', silver: false, gold: 'Up to 10 rows', platinum: 'Up to 50 rows' },
-  { label: 'Max copies per sheet', silver: '8', gold: '30', platinum: 'Unlimited' },
-  { label: 'Crop marks, bleed, fold guides', silver: true, gold: true, platinum: true },
-  { label: 'Registration marks & color bars', silver: true, gold: true, platinum: true },
-  { label: 'Watermark on output', silver: '"Made with PrintReady"', gold: 'None', platinum: 'None' },
-  { label: 'Files processed in browser only', silver: true, gold: true, platinum: true },
-  { label: 'Works offline (PWA)', silver: true, gold: true, platinum: true },
+  { label: 'PDF uploads / month', free: '3', starter: '15', business: '50', pro: '150', enterprise: 'Unlimited' },
+  { label: 'Login required', free: false, starter: true, business: true, pro: true, enterprise: true },
+  { label: 'Monthly price', free: '₹0', starter: '₹699', business: '₹1499', pro: '₹2499', enterprise: '₹3000' },
+  { label: 'Auto-extract photo + details', free: true, starter: true, business: true, pro: true, enterprise: true },
+  { label: 'Print-ready A4 with crop marks', free: true, starter: true, business: true, pro: true, enterprise: true },
+  { label: 'PDF files only', free: true, starter: true, business: true, pro: true, enterprise: true },
+  { label: 'Watermark on output', free: 'Yes', starter: 'None', business: 'None', pro: 'None', enterprise: 'None' },
+  { label: 'Bulk CSV mode', free: false, starter: false, business: true, pro: true, enterprise: true },
+  { label: 'Multiple team members', free: false, starter: false, business: false, pro: true, enterprise: true },
+  { label: 'Multi-center branding', free: false, starter: false, business: false, pro: true, enterprise: true },
+  { label: 'Saved student database', free: false, starter: false, business: false, pro: false, enterprise: true },
+  { label: 'Support', free: 'Community', starter: 'Email', business: 'Priority email', pro: 'Priority email', enterprise: 'Dedicated' },
 ];
 
 function renderCell(cell: Cell) {
@@ -38,18 +41,22 @@ export function FeatureTable() {
           <thead>
             <tr className="bg-muted/40 text-left">
               <th className="p-4 font-semibold">Feature</th>
-              <th className="p-4 text-center font-semibold">Silver</th>
-              <th className="p-4 text-center font-semibold text-primary">Gold</th>
-              <th className="p-4 text-center font-semibold">Platinum</th>
+              <th className="p-4 text-center font-semibold">Free</th>
+              <th className="p-4 text-center font-semibold">Starter</th>
+              <th className="p-4 text-center font-semibold text-primary">Business</th>
+              <th className="p-4 text-center font-semibold">Pro</th>
+              <th className="p-4 text-center font-semibold">Enterprise</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r, idx) => (
               <tr key={r.label} className={cn('border-t', idx % 2 === 1 && 'bg-muted/20')}>
                 <td className="p-4 font-medium">{r.label}</td>
-                <td className="p-4 text-center">{renderCell(r.silver)}</td>
-                <td className="p-4 text-center">{renderCell(r.gold)}</td>
-                <td className="p-4 text-center">{renderCell(r.platinum)}</td>
+                <td className="p-4 text-center">{renderCell(r.free)}</td>
+                <td className="p-4 text-center">{renderCell(r.starter)}</td>
+                <td className="p-4 text-center">{renderCell(r.business)}</td>
+                <td className="p-4 text-center">{renderCell(r.pro)}</td>
+                <td className="p-4 text-center">{renderCell(r.enterprise)}</td>
               </tr>
             ))}
           </tbody>

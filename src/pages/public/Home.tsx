@@ -20,6 +20,7 @@ import { DropZone } from '@/components/upload/DropZone';
 import { IdCardConfig } from '@/components/idcard/IdCardConfig';
 import { CardPreview } from '@/components/idcard/CardPreview';
 import { CardList } from '@/components/idcard/CardList';
+import { UpgradeModal } from '@/components/pricing/UpgradeModal';
 import { extractIdCard } from '@/lib/idcard/extract';
 import { composeIdCardsPdf } from '@/lib/idcard/compose';
 import { type IdCardLayout } from '@/lib/idcard/layout';
@@ -29,6 +30,8 @@ import { triggerDownload } from '@/lib/download';
 
 const MAX_FILES = 10;
 const MAX_SIZE_BYTES = 50 * 1024 * 1024;
+/** Free plan: how many PDFs a guest can process at once before the upgrade popup. */
+const FREE_PLAN_LIMIT = 3;
 
 const differentiators = [
   {
@@ -54,9 +57,9 @@ const differentiators = [
 ];
 
 const tiers = [
-  { name: 'Silver', price: '₹0', tag: 'Free', perks: ['5 PDFs / mo', 'Editor + 10 MB upload'] },
-  { name: 'Gold', price: '₹499', tag: 'mo', perks: ['15 PDFs / mo', 'CSV (10 rows)', '25 MB upload'], featured: true },
-  { name: 'Platinum', price: '₹999', tag: 'mo', perks: ['20 PDFs / mo', 'CSV (50 rows)', 'Multi-file 50 MB'] },
+  { name: 'Free', price: '₹0', tag: 'Free', perks: ['3 PDFs / mo', 'No login', 'Auto photo + details'] },
+  { name: 'Business', price: '₹1499', tag: 'mo', perks: ['50 PDFs / mo', 'Login + Bulk CSV', 'Priority support'], featured: true },
+  { name: 'Enterprise', price: '₹3000', tag: 'mo', perks: ['Unlimited PDFs', 'Student database', 'Dedicated support'] },
 ];
 
 type Step = 'idle' | 'processing' | 'review' | 'generating' | 'done';
@@ -69,6 +72,8 @@ export default function Home() {
   const [originalPhotos, setOriginalPhotos] = useState<(Uint8Array | null)[]>([]);
   /** Which card is shown in the live preview. */
   const [previewIndex, setPreviewIndex] = useState(0);
+  /** Upgrade popup shown when the free PDF limit is exceeded. */
+  const [upgradeOpen, setUpgradeOpen] = useState(false);
   // Branding (logo + header text/colours) is loaded from the last session so
   // the client never has to re-upload the logo.
   const [layout, setLayout] = useState<IdCardLayout>(loadBranding);
@@ -91,9 +96,13 @@ export default function Home() {
   };
 
   const handleFiles = async (files: File[]) => {
-    const batch = files.slice(0, MAX_FILES);
-    if (files.length > MAX_FILES) {
-      toast.info(`Processing the first ${MAX_FILES} files — the rest were ignored.`);
+    const batch = files.slice(0, FREE_PLAN_LIMIT);
+    if (files.length > FREE_PLAN_LIMIT) {
+      // Free plan quota reached — let the user pick a paid plan by PDF count.
+      setUpgradeOpen(true);
+      toast.info(
+        `Free plan covers ${FREE_PLAN_LIMIT} PDFs — processing the first ${FREE_PLAN_LIMIT}. Upgrade to do more.`,
+      );
     }
 
     setStep('processing');
@@ -382,6 +391,13 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      <UpgradeModal
+        open={upgradeOpen}
+        onOpenChange={setUpgradeOpen}
+        context="Free plan limit reached"
+        reason={`The Free plan processes ${FREE_PLAN_LIMIT} PDFs at a time with no login. Pick a plan below to process more PDFs each month.`}
+      />
     </PublicShell>
   );
 }

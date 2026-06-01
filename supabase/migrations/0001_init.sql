@@ -8,7 +8,7 @@
 create table if not exists public.profiles (
   id          uuid primary key references auth.users(id) on delete cascade,
   full_name   text,
-  plan        text not null default 'silver' check (plan in ('silver','gold','platinum')),
+  plan        text not null default 'free' check (plan in ('free','starter','business','pro','enterprise')),
   created_at  timestamptz not null default now()
 );
 
@@ -54,7 +54,7 @@ begin
   values (
     new.id,
     new.raw_user_meta_data->>'full_name',
-    coalesce(new.raw_user_meta_data->>'plan', 'silver')
+    coalesce(new.raw_user_meta_data->>'plan', 'free')
   );
   return new;
 end;
@@ -87,10 +87,12 @@ begin
 
   select plan into v_plan from public.profiles where id = p_user_id;
   v_limit := case v_plan
-    when 'silver'   then 5
-    when 'gold'     then 15
-    when 'platinum' then 20
-    else 5
+    when 'free'       then 3
+    when 'starter'    then 15
+    when 'business'   then 50
+    when 'pro'        then 150
+    when 'enterprise' then 100000
+    else 3
   end;
 
   insert into public.usage_monthly (user_id, period, documents_generated)
@@ -144,10 +146,12 @@ begin
 
   select plan into v_plan from public.profiles where id = p_user_id;
   v_limit := case v_plan
-    when 'silver'   then 5
-    when 'gold'     then 15
-    when 'platinum' then 20
-    else 5
+    when 'free'       then 3
+    when 'starter'    then 15
+    when 'business'   then 50
+    when 'pro'        then 150
+    when 'enterprise' then 100000
+    else 3
   end;
 
   select coalesce(documents_generated, 0) into v_current

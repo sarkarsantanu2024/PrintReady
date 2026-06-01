@@ -22,7 +22,13 @@ interface BulkCsvPanelProps {
   onUpgrade: () => void;
 }
 
-const planRowLimit: Record<Plan, number> = { silver: 0, gold: 10, platinum: 50 };
+const planRowLimit: Record<Plan, number> = {
+  free: 0,
+  starter: 0,
+  business: 10,
+  pro: 50,
+  enterprise: 1000,
+};
 
 export function BulkCsvPanel({ layout, plan, userId, onUpgrade }: BulkCsvPanelProps) {
   const incrementUsage = useIncrementUsage();
