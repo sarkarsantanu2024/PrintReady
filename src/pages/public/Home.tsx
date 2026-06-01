@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
   Download,
   FileSpreadsheet,
   Loader2,
@@ -20,7 +22,8 @@ import { CardPreview } from '@/components/idcard/CardPreview';
 import { CardList } from '@/components/idcard/CardList';
 import { extractIdCard } from '@/lib/idcard/extract';
 import { composeIdCardsPdf } from '@/lib/idcard/compose';
-import { DEFAULT_LAYOUT, type IdCardLayout } from '@/lib/idcard/layout';
+import { type IdCardLayout } from '@/lib/idcard/layout';
+import { loadBranding, saveBranding } from '@/lib/idcard/branding';
 import type { ExtractedIdCard } from '@/lib/idcard/types';
 import { triggerDownload } from '@/lib/download';
 
@@ -64,7 +67,16 @@ export default function Home() {
   const [extracted, setExtracted] = useState<ExtractedIdCard[]>([]);
   /** Snapshot of photos as originally extracted, for the "restore" affordance. */
   const [originalPhotos, setOriginalPhotos] = useState<(Uint8Array | null)[]>([]);
-  const [layout, setLayout] = useState<IdCardLayout>(DEFAULT_LAYOUT);
+  /** Which card is shown in the live preview. */
+  const [previewIndex, setPreviewIndex] = useState(0);
+  // Branding (logo + header text/colours) is loaded from the last session so
+  // the client never has to re-upload the logo.
+  const [layout, setLayout] = useState<IdCardLayout>(loadBranding);
+
+  // Persist branding whenever it changes.
+  useEffect(() => {
+    saveBranding(layout);
+  }, [layout]);
 
   const replacePhoto = (index: number, photoPng: Uint8Array | null) => {
     setExtracted((prev) =>
@@ -107,6 +119,7 @@ export default function Home() {
 
     setExtracted(results);
     setOriginalPhotos(results.map((r) => r.photoPng));
+    setPreviewIndex(0);
     setStep('review');
   };
 
@@ -127,8 +140,11 @@ export default function Home() {
     setStep('idle');
     setExtracted([]);
     setOriginalPhotos([]);
+    setPreviewIndex(0);
     setProgress({ done: 0, total: 0 });
-    setLayout(DEFAULT_LAYOUT);
+    // Keep the saved branding (logo/header) — "Start over" only clears the
+    // uploaded cards, not the one-time logo.
+    setLayout(loadBranding());
   };
 
   return (
@@ -211,14 +227,49 @@ export default function Home() {
               </div>
               <div className="space-y-4 lg:col-span-7">
                 <Card className="p-5">
-                  <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                    Live preview
-                  </h3>
+                  <div className="mb-4 flex items-center justify-between gap-2">
+                    <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                      Live preview
+                    </h3>
+                    {extracted.length > 1 && (
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-7 w-7"
+                          aria-label="Previous card"
+                          disabled={previewIndex <= 0}
+                          onClick={() =>
+                            setPreviewIndex((i) => Math.max(0, i - 1))
+                          }
+                        >
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <span className="min-w-[3.5rem] text-center text-xs text-muted-foreground">
+                          {previewIndex + 1} / {extracted.length}
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-7 w-7"
+                          aria-label="Next card"
+                          disabled={previewIndex >= extracted.length - 1}
+                          onClick={() =>
+                            setPreviewIndex((i) =>
+                              Math.min(extracted.length - 1, i + 1),
+                            )
+                          }
+                        >
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                   <div className="flex justify-center overflow-auto rounded-md bg-muted/30 p-6">
-                    <CardPreview layout={layout} sample={extracted[0]} />
+                    <CardPreview layout={layout} sample={extracted[previewIndex]} />
                   </div>
                   <p className="mt-3 text-center text-xs text-muted-foreground">
-                    Showing card 1 of {extracted.length}. All cards use the same layout.
+                    Showing card {previewIndex + 1} of {extracted.length}. All cards use the same layout.
                   </p>
                 </Card>
 

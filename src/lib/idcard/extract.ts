@@ -61,15 +61,23 @@ async function extractFields(page: any): Promise<IdCardFields> {
   };
 }
 
+interface ImageBox {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 async function extractPhoto(page: any, pdfjs: any): Promise<Uint8Array | null> {
-  // Walk the operator list to find the first paintImageXObject and the
-  // transform matrix in effect at that moment. The matrix is [a b c d e f]
-  // where (a, d) ≈ (width, height) in points and (e, f) = (x, y) origin.
+  // Walk the operator list and collect EVERY painted image with the transform
+  // matrix in effect at that moment. The matrix is [a b c d e f]; the drawn
+  // size is the length of the (a,b) and (c,d) column vectors, and (e, f) is the
+  // origin. Origin in PDF = bottom-left.
   const opList = await page.getOperatorList();
 
   const stack: number[][] = [];
   let ctm: number[] = [1, 0, 0, 1, 0, 0];
-  let imageBbox: { x: number; y: number; w: number; h: number } | null = null;
+  const candidates: ImageBox[] = [];
 
   for (let i = 0; i < opList.fnArray.length; i++) {
     const fn = opList.fnArray[i];
@@ -86,19 +94,18 @@ async function extractPhoto(page: any, pdfjs: any): Promise<Uint8Array | null> {
       fn === pdfjs.OPS.paintJpegXObject ||
       fn === pdfjs.OPS.paintInlineImageXObject
     ) {
-      // CTM at this point maps the image's unit square (0..1) → page coords
-      // in PDF units. Origin in PDF = bottom-left.
-      const w = Math.abs(ctm[0]);
-      const h = Math.abs(ctm[3]);
+      // Drawn dimensions on the page (robust to rotation/skew).
+      const w = Math.hypot(ctm[0], ctm[1]);
+      const h = Math.hypot(ctm[2], ctm[3]);
       const x = ctm[4];
       const y = ctm[5];
       if (w > 20 && h > 20) {
-        imageBbox = { x, y, w, h };
-        break;
+        candidates.push({ x, y, w, h });
       }
     }
   }
 
+  const imageBbox = pickStudentPhoto(candidates);
   if (!imageBbox) return null;
 
   // Render the full page at high DPI and crop the bbox region.
@@ -125,6 +132,43 @@ async function extractPhoto(page: any, pdfjs: any): Promise<Uint8Array | null> {
   cropCtx.drawImage(canvas, cx, cy, cw, ch, 0, 0, cropCanvas.width, cropCanvas.height);
 
   return await canvasToPng(cropCanvas);
+}
+
+/**
+ * Among all images on the page, choose the one that is the student photograph.
+ *
+ * On these cards the page also contains the institute logo (small, roughly
+ * square) and the orange header band (very wide, landscape) — neither is the
+ * photo. A passport-style student photo is always *portrait* (taller than wide)
+ * and the largest such image. So we reject wide bands, favour portrait images,
+ * and break ties by drawn area.
+ */
+function pickStudentPhoto(candidates: ImageBox[]): ImageBox | null {
+  if (candidates.length === 0) return null;
+  if (candidates.length === 1) return candidates[0];
+
+  let best: ImageBox | null = null;
+  let bestScore = -Infinity;
+  for (const c of candidates) {
+    const aspect = c.w / c.h; // < 1 = portrait, > 1 = landscape
+    // Skip the header band and other clearly-landscape artwork.
+    if (aspect > 1.6) continue;
+    // Portrait images (the photo) score on full area; squarish/landscape
+    // images (logos) are penalised so a large photo always wins.
+    const portraitWeight = aspect <= 1.1 ? 1 : 0.35;
+    const score = c.w * c.h * portraitWeight;
+    if (score > bestScore) {
+      bestScore = score;
+      best = c;
+    }
+  }
+
+  // If every image looked like a band (none passed the filter), fall back to
+  // the largest image so we still return something rather than nothing.
+  if (!best) {
+    best = candidates.reduce((a, b) => (a.w * a.h >= b.w * b.h ? a : b));
+  }
+  return best;
 }
 
 function multiplyMatrix(a: number[], b: number[]): number[] {
