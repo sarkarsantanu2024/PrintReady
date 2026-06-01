@@ -20,7 +20,7 @@ const signupSchema = z
     email: z.string().email('Enter a valid email address'),
     password: z.string().min(8, 'Password must be at least 8 characters'),
     confirm_password: z.string(),
-    plan: z.enum(['silver', 'gold', 'platinum']),
+    plan: z.enum(['free', 'starter', 'business', 'pro', 'enterprise']),
   })
   .refine((d) => d.password === d.confirm_password, {
     message: 'Passwords do not match',
@@ -29,9 +29,11 @@ const signupSchema = z
 type SignupValues = z.infer<typeof signupSchema>;
 
 const plans: { value: Plan; title: string; copy: string; badge?: string }[] = [
-  { value: 'silver', title: 'Silver', copy: 'Free · 5 generations / mo' },
-  { value: 'gold', title: 'Gold', copy: '₹499 · 15 generations / mo', badge: 'Popular' },
-  { value: 'platinum', title: 'Platinum', copy: '₹999 · 20 generations / mo' },
+  { value: 'free', title: 'Free', copy: '₹0 · 3 PDFs / mo' },
+  { value: 'starter', title: 'Starter', copy: '₹699 · 15 PDFs / mo' },
+  { value: 'business', title: 'Business', copy: '₹1499 · 50 PDFs / mo', badge: 'Popular' },
+  { value: 'pro', title: 'Pro', copy: '₹2499 · 150 PDFs / mo' },
+  { value: 'enterprise', title: 'Enterprise', copy: '₹3000 · Unlimited PDFs' },
 ];
 
 export default function Signup() {
@@ -52,7 +54,7 @@ export default function Signup() {
       email: '',
       password: '',
       confirm_password: '',
-      plan: 'silver',
+      plan: 'free',
     },
   });
   const selectedPlan = watch('plan');
@@ -89,7 +91,7 @@ export default function Signup() {
   return (
     <AuthCard
       title="Create your account"
-      subtitle="Start with the free Silver plan — upgrade anytime."
+      subtitle="Start free — upgrade anytime."
       footer={
         <>
           Already have an account?{' '}

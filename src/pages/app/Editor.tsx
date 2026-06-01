@@ -13,7 +13,7 @@ export default function Editor() {
   const [layout, setLayout] = useState<LayoutKind>('id_card');
   const [mode, setMode] = useState<'single' | 'bulk'>('single');
   const [upgradeOpen, setUpgradeOpen] = useState(false);
-  const plan = profile?.plan ?? 'silver';
+  const plan = profile?.plan ?? 'free';
 
   const onUpgrade = () => setUpgradeOpen(true);
 

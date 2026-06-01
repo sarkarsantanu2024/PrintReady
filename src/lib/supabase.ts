@@ -32,7 +32,16 @@ if (!isSupabaseConfigured) {
   );
 }
 
-export type Plan = 'silver' | 'gold' | 'platinum';
+export type Plan = 'free' | 'starter' | 'business' | 'pro' | 'enterprise';
+
+/** Monthly PDF-upload limit per plan. `enterprise` is effectively unlimited. */
+export const PLAN_LIMITS: Record<Plan, number> = {
+  free: 3,
+  starter: 15,
+  business: 50,
+  pro: 150,
+  enterprise: 100000,
+};
 
 export interface ProfileRow {
   id: string;

@@ -29,13 +29,25 @@ export function UpgradeModal({ open, onOpenChange, reason, context }: UpgradeMod
             <li className="flex items-start gap-2">
               <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
               <span>
-                <strong>Gold</strong> · 15 PDFs/month, 25 MB uploads, bulk CSV up to 10 rows.
+                <strong>Starter — ₹699/mo</strong> · 15 PDF uploads per month.
               </span>
             </li>
             <li className="flex items-start gap-2">
               <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
               <span>
-                <strong>Platinum</strong> · 20 PDFs/month, 50 MB multi-file, bulk CSV up to 50 rows.
+                <strong>Business — ₹1499/mo</strong> · 50 PDF uploads, bulk CSV.
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+              <span>
+                <strong>Pro — ₹2499/mo</strong> · 150 PDF uploads, multiple users.
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+              <span>
+                <strong>Enterprise — ₹3000/mo</strong> · Unlimited uploads + student database.
               </span>
             </li>
           </ul>

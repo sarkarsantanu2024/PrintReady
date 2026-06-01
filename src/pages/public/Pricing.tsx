@@ -6,77 +6,110 @@ import { FeatureTable } from '@/components/pricing/FeatureTable';
 
 const tiers: TierConfig[] = [
   {
-    plan: 'silver',
-    name: 'Silver',
-    tagline: 'For trying things out and personal projects.',
+    id: 'free',
+    name: 'Free',
+    badgeClass: 'bg-slate-500/10 text-slate-600 dark:text-slate-300',
+    tagline: 'Try it out — no account needed.',
     monthly: 0,
     yearly: 0,
     features: [
-      '5 PDF generations per month',
-      'All 3 editor layouts',
-      'Single file upload up to 10 MB',
-      'Up to 8 copies per A4 sheet',
-      'Watermarked output',
+      '3 PDF uploads per month',
+      'No login required',
+      'Auto-extract photo + details from each PDF',
+      'Print-ready A4 with crop marks',
+      'PDF files only',
     ],
-    ctaLabel: 'Get started — free',
+    ctaLabel: 'Start free — no login',
+    ctaTo: '/',
+  },
+  {
+    id: 'starter',
+    name: 'Starter',
+    badgeClass: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
+    tagline: 'For a single center getting started.',
+    monthly: 699,
+    yearly: 6990,
+    features: [
+      '15 PDF uploads per month',
+      'Login required',
+      'Everything in Free',
+      'No watermark on output',
+    ],
+    ctaLabel: 'Choose Starter',
     ctaTo: '/signup',
   },
   {
-    plan: 'gold',
-    name: 'Gold',
-    tagline: 'For freelancers and small teams shipping prints regularly.',
-    monthly: 499,
-    yearly: 4990,
+    id: 'business',
+    name: 'Business',
+    badgeClass: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
+    tagline: 'For busy centers with regular batches.',
+    monthly: 1499,
+    yearly: 14990,
     features: [
-      '15 PDF generations per month',
-      'Multi-file upload up to 25 MB',
-      'Bulk CSV mode (up to 10 rows)',
-      'Up to 30 copies per sheet',
-      'No watermark',
+      '50 PDF uploads per month',
+      'Login required',
+      'Bulk CSV mode',
+      'Priority email support',
     ],
     highlight: true,
     badge: 'Most popular',
-    ctaLabel: 'Choose Gold',
+    ctaLabel: 'Choose Business',
     ctaTo: '/signup',
   },
   {
-    plan: 'platinum',
-    name: 'Platinum',
-    tagline: 'For agencies and print shops handling bulk runs.',
-    monthly: 999,
-    yearly: 9990,
+    id: 'pro',
+    name: 'Pro',
+    badgeClass: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
+    tagline: 'For multi-center brands and franchises.',
+    monthly: 2499,
+    yearly: 24990,
     features: [
-      '20 PDF generations per month',
-      'Multi-file batch upload up to 50 MB',
-      'Bulk CSV mode (up to 50 rows)',
-      'Unlimited copies per sheet',
-      'No watermark, priority roadmap',
+      '150 PDF uploads per month',
+      'Login required',
+      'Multiple team members',
+      'Multi-center branding',
     ],
-    ctaLabel: 'Choose Platinum',
+    ctaLabel: 'Choose Pro',
+    ctaTo: '/signup',
+  },
+  {
+    id: 'enterprise',
+    name: 'Enterprise',
+    badgeClass: 'bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-300',
+    tagline: 'Unlimited volume with a saved student database.',
+    monthly: 3000,
+    yearly: 30000,
+    features: [
+      'Unlimited PDF uploads',
+      'Login required',
+      'Saved student database',
+      'Dedicated support',
+    ],
+    ctaLabel: 'Choose Enterprise',
     ctaTo: '/signup',
   },
 ];
 
 const faqs: { q: string; a: string }[] = [
   {
-    q: 'How does a "generation" count?',
-    a: 'One PDF output = one generation, regardless of flow. 8 ID cards on one A4 sheet via the editor counts as 1. 47 cards via Bulk CSV across 6 sheets counts as 47. One upload-flow conversion counts as 1.',
+    q: 'How does a PDF upload count?',
+    a: 'Each source PDF you upload and process counts as one against your monthly quota — regardless of how many cards it produces. Your plan limit is simply the number of PDFs you can process per month.',
+  },
+  {
+    q: 'What file types are supported?',
+    a: 'PDF only. Upload the ID-card PDFs exported from your system; other formats (JPG, PNG, DOCX, etc.) are not supported.',
+  },
+  {
+    q: 'Do I need to log in?',
+    a: 'The Free plan (3 PDFs/month) needs no login. All paid plans require a login so your quota, history, and saved branding stay tied to your account.',
   },
   {
     q: 'When does my monthly quota reset?',
-    a: 'On the 1st of every calendar month, in your account\'s timezone (UTC for the MVP).',
+    a: 'On the 1st of every calendar month.',
   },
   {
-    q: 'Are my designs uploaded to your servers?',
-    a: 'No. Files are processed entirely in your browser using WebAssembly + canvas. We never receive the design itself, only metadata about the documents you generate (count, type, timestamp).',
-  },
-  {
-    q: 'Can you do CMYK / Pantone output?',
-    a: 'The MVP outputs RGB PDFs at 100% scale, with crop marks and bleed. Most digital and modern offset printers handle this. For strict Pantone matching, send the RGB PDF to your printer for conversion or contact us about CMYK support on the Platinum plan.',
-  },
-  {
-    q: 'What sheet sizes are supported?',
-    a: 'A4 (default), A3, A5, US Letter, and US Legal in both portrait and landscape, with multi-up grid layout for cards and tickets.',
+    q: 'Are my files uploaded to your servers?',
+    a: 'No. PDFs are processed entirely in your browser — the photo and details are extracted locally. We never receive the file itself, only the count of PDFs you process.',
   },
   {
     q: 'Can I cancel anytime?',
@@ -95,7 +128,7 @@ export default function Pricing() {
             Pricing built for printers
           </h1>
           <p className="mt-4 text-lg text-muted-foreground">
-            Start free. Upgrade when you need more generations, larger files, or bulk CSV.
+            Start free with no login. Upgrade when you need more PDF uploads per month.
           </p>
 
           <div className="mt-8 inline-flex rounded-full border bg-card p-1">
@@ -127,9 +160,9 @@ export default function Pricing() {
           </div>
         </div>
 
-        <div className="mx-auto mt-10 grid max-w-5xl gap-5 md:grid-cols-3">
+        <div className="mx-auto mt-10 grid max-w-7xl gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
           {tiers.map((t) => (
-            <PricingCard key={t.plan} tier={t} billing={billing} />
+            <PricingCard key={t.id} tier={t} billing={billing} />
           ))}
         </div>
       </section>

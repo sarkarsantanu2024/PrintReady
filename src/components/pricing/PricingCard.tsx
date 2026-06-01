@@ -3,11 +3,13 @@ import { CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import type { Plan } from '@/lib/supabase';
 
 export interface TierConfig {
-  plan: Plan;
+  /** Display-only identifier for React keys — decoupled from the auth Plan enum. */
+  id: string;
   name: string;
+  /** Tailwind classes for the small name badge. */
+  badgeClass: string;
   tagline: string;
   monthly: number;
   yearly: number;
@@ -23,16 +25,14 @@ interface PricingCardProps {
   billing: 'monthly' | 'yearly';
 }
 
-const planBadgeClass: Record<Plan, string> = {
-  silver: 'bg-tier-silver/10 text-slate-600 dark:text-slate-300',
-  gold: 'bg-tier-gold/15 text-amber-700 dark:text-amber-300',
-  platinum:
-    'bg-gradient-to-r from-tier-platinum-from/15 to-tier-platinum-to/15 text-fuchsia-700 dark:text-fuchsia-300',
-};
-
 export function PricingCard({ tier, billing }: PricingCardProps) {
   const price = billing === 'monthly' ? tier.monthly : Math.round((tier.yearly / 12) * 100) / 100;
-  const subText = billing === 'monthly' ? '/month' : `/month · billed ₹${tier.yearly}/yr`;
+  const subText =
+    tier.monthly === 0
+      ? 'forever'
+      : billing === 'monthly'
+        ? '/month'
+        : `/month · billed ₹${tier.yearly}/yr`;
 
   return (
     <Card
@@ -50,7 +50,7 @@ export function PricingCard({ tier, billing }: PricingCardProps) {
         <span
           className={cn(
             'rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wide',
-            planBadgeClass[tier.plan],
+            tier.badgeClass,
           )}
         >
           {tier.name}
