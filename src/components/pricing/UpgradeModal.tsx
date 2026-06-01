@@ -29,19 +29,19 @@ export function UpgradeModal({ open, onOpenChange, reason, context }: UpgradeMod
             <li className="flex items-start gap-2">
               <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
               <span>
-                <strong>Starter — ₹699/mo</strong> · 15 PDF uploads per month.
+                <strong>Starter — ₹699/mo</strong> · 35 PDF uploads per month.
               </span>
             </li>
             <li className="flex items-start gap-2">
               <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
               <span>
-                <strong>Business — ₹1499/mo</strong> · 50 PDF uploads, bulk CSV.
+                <strong>Business — ₹1499/mo</strong> · 70 PDF uploads, bulk CSV.
               </span>
             </li>
             <li className="flex items-start gap-2">
               <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
               <span>
-                <strong>Pro — ₹2499/mo</strong> · 150 PDF uploads, multiple users.
+                <strong>Pro — ₹2499/mo</strong> · 170 PDF uploads, multiple users.
               </span>
             </li>
             <li className="flex items-start gap-2">

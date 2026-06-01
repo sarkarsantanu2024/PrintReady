@@ -87,12 +87,12 @@ begin
 
   select plan into v_plan from public.profiles where id = p_user_id;
   v_limit := case v_plan
-    when 'free'       then 3
-    when 'starter'    then 15
-    when 'business'   then 50
-    when 'pro'        then 150
+    when 'free'       then 20
+    when 'starter'    then 35
+    when 'business'   then 70
+    when 'pro'        then 170
     when 'enterprise' then 100000
-    else 3
+    else 20
   end;
 
   insert into public.usage_monthly (user_id, period, documents_generated)
@@ -146,12 +146,12 @@ begin
 
   select plan into v_plan from public.profiles where id = p_user_id;
   v_limit := case v_plan
-    when 'free'       then 3
-    when 'starter'    then 15
-    when 'business'   then 50
-    when 'pro'        then 150
+    when 'free'       then 20
+    when 'starter'    then 35
+    when 'business'   then 70
+    when 'pro'        then 170
     when 'enterprise' then 100000
-    else 3
+    else 20
   end;
 
   select coalesce(documents_generated, 0) into v_current

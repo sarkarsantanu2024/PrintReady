@@ -29,10 +29,10 @@ const signupSchema = z
 type SignupValues = z.infer<typeof signupSchema>;
 
 const plans: { value: Plan; title: string; copy: string; badge?: string }[] = [
-  { value: 'free', title: 'Free', copy: '₹0 · 3 PDFs / mo' },
-  { value: 'starter', title: 'Starter', copy: '₹699 · 15 PDFs / mo' },
-  { value: 'business', title: 'Business', copy: '₹1499 · 50 PDFs / mo', badge: 'Popular' },
-  { value: 'pro', title: 'Pro', copy: '₹2499 · 150 PDFs / mo' },
+  { value: 'free', title: 'Free', copy: '₹0 · 20 PDFs / mo' },
+  { value: 'starter', title: 'Starter', copy: '₹699 · 35 PDFs / mo' },
+  { value: 'business', title: 'Business', copy: '₹1499 · 70 PDFs / mo', badge: 'Popular' },
+  { value: 'pro', title: 'Pro', copy: '₹2499 · 170 PDFs / mo' },
   { value: 'enterprise', title: 'Enterprise', copy: '₹3000 · Unlimited PDFs' },
 ];
 

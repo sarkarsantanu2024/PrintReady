@@ -13,7 +13,7 @@ interface Row {
 }
 
 const rows: Row[] = [
-  { label: 'PDF uploads / month', free: '3', starter: '15', business: '50', pro: '150', enterprise: 'Unlimited' },
+  { label: 'PDF uploads / month', free: '20', starter: '35', business: '70', pro: '170', enterprise: 'Unlimited' },
   { label: 'Login required', free: false, starter: true, business: true, pro: true, enterprise: true },
   { label: 'Monthly price', free: '₹0', starter: '₹699', business: '₹1499', pro: '₹2499', enterprise: '₹3000' },
   { label: 'Auto-extract photo + details', free: true, starter: true, business: true, pro: true, enterprise: true },

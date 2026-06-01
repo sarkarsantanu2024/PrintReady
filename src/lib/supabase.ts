@@ -36,10 +36,10 @@ export type Plan = 'free' | 'starter' | 'business' | 'pro' | 'enterprise';
 
 /** Monthly PDF-upload limit per plan. `enterprise` is effectively unlimited. */
 export const PLAN_LIMITS: Record<Plan, number> = {
-  free: 3,
-  starter: 15,
-  business: 50,
-  pro: 150,
+  free: 20,
+  starter: 35,
+  business: 70,
+  pro: 170,
   enterprise: 100000,
 };
 

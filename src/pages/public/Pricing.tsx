@@ -13,7 +13,7 @@ const tiers: TierConfig[] = [
     monthly: 0,
     yearly: 0,
     features: [
-      '3 PDF uploads per month',
+      '20 PDF uploads per month',
       'No login required',
       'Auto-extract photo + details from each PDF',
       'Print-ready A4 with crop marks',
@@ -30,7 +30,7 @@ const tiers: TierConfig[] = [
     monthly: 699,
     yearly: 6990,
     features: [
-      '15 PDF uploads per month',
+      '35 PDF uploads per month',
       'Login required',
       'Everything in Free',
       'No watermark on output',
@@ -46,7 +46,7 @@ const tiers: TierConfig[] = [
     monthly: 1499,
     yearly: 14990,
     features: [
-      '50 PDF uploads per month',
+      '70 PDF uploads per month',
       'Login required',
       'Bulk CSV mode',
       'Priority email support',
@@ -64,7 +64,7 @@ const tiers: TierConfig[] = [
     monthly: 2499,
     yearly: 24990,
     features: [
-      '150 PDF uploads per month',
+      '170 PDF uploads per month',
       'Login required',
       'Multiple team members',
       'Multi-center branding',
@@ -101,7 +101,7 @@ const faqs: { q: string; a: string }[] = [
   },
   {
     q: 'Do I need to log in?',
-    a: 'The Free plan (3 PDFs/month) needs no login. All paid plans require a login so your quota, history, and saved branding stay tied to your account.',
+    a: 'The Free plan (20 PDFs/month) needs no login. All paid plans require a login so your quota, history, and saved branding stay tied to your account.',
   },
   {
     q: 'When does my monthly quota reset?',
