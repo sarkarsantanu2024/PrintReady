@@ -45,10 +45,10 @@ export interface IdCardLayout {
   header: IdCardHeader;
 }
 
-// Fixed dimensions — 2 × 4 = 8 cards fill an A4 portrait sheet with a thin
-// 5 mm outer margin and no gap between cards. Card body 100 × 71.5 mm.
-// (Larger than CR80 but standard for Indian school / institute ID printing
-// where the sheet is cut into 8 cards.)
+// Fixed dimensions — 2 × 5 = 10 cards fill an A4 portrait sheet with no gap
+// between cards (2×88 = 176 mm wide, 5×56 = 280 mm tall, centred on A4).
+// Card body 88 × 56 mm (3.4 × 2.2 in) — standard Indian institute ID size,
+// where the sheet is cut into 10 cards.
 export const DEFAULT_LAYOUT: IdCardLayout = {
   pageSize: 'A4',
   orientation: 'portrait',
@@ -56,18 +56,18 @@ export const DEFAULT_LAYOUT: IdCardLayout = {
   gapMm: 0,
   bleedMm: 0,
 
-  cardWidthMm: 100,
-  cardHeightMm: 71.5,
+  cardWidthMm: 88,
+  cardHeightMm: 56,
   cardBgColor: '#ffffff',
   cardBorderColor: '#c9ced3',
 
-  photoWidthMm: 30,
-  photoHeightMm: 38,
-  photoPadMm: 4,
+  photoWidthMm: 22,
+  photoHeightMm: 28,
+  photoPadMm: 3,
 
-  labelSize: 7,
-  valueSize: 9,
-  nameSize: 11,
+  labelSize: 6,
+  valueSize: 7,
+  nameSize: 9,
   labelColor: '#6c7680',
   valueColor: '#1a1f26',
 
@@ -79,7 +79,7 @@ export const DEFAULT_LAYOUT: IdCardLayout = {
     website: 'www.mindmantraabacus.com',
     bgColor: '#e87d2e',
     textColor: '#ffffff',
-    heightMm: 15,
+    heightMm: 10,
   },
 };
 

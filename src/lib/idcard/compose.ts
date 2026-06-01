@@ -10,9 +10,9 @@ import { mmToPt, sheetDimensionsPt } from '@/lib/pdf/units';
 import type { ExtractedIdCard } from './types';
 import { DEFAULT_LAYOUT, hexToRgb01, type IdCardLayout } from './layout';
 
-// Forced grid — 2 columns × 4 rows = 8 cards per A4 sheet.
+// Forced grid — 2 columns × 5 rows = 10 cards per A4 sheet.
 const FORCED_COLS = 2;
-const FORCED_ROWS = 4;
+const FORCED_ROWS = 5;
 const CARDS_PER_PAGE = FORCED_COLS * FORCED_ROWS;
 
 /**
@@ -180,7 +180,7 @@ function drawIdCard(
   // Text block to the right of the photo
   const textX = photoX + photoW + mmToPt(4);
   const textW = x + w - textX - mmToPt(layout.photoPadMm);
-  let cursorY = y + h - headerH - mmToPt(3) - layout.valueSize;
+  let cursorY = y + h - headerH - mmToPt(2) - layout.valueSize;
 
   const fields: { label: string; value: string; isName?: boolean }[] = [
     { label: 'Name', value: card.fields.name, isName: true },
@@ -212,7 +212,7 @@ function drawIdCard(
       cursorY -= valSize + 1;
     }
     // Breathing space between fields
-    cursorY -= 4;
+    cursorY -= 2;
   }
 }
 

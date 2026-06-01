@@ -64,8 +64,8 @@ export function IdCardConfig({ layout, onChange }: Props) {
           Header branding
         </h3>
         <p className="mt-1 text-xs text-muted-foreground">
-          Card size, photo size and typography are fixed so 8 cards fill an A4
-          sheet with a 5 mm outer margin. Only the header content is editable.
+          Card size (88 × 56 mm), photo size and typography are fixed so 10
+          cards fill an A4 sheet. Only the header content is editable.
         </p>
       </div>
 

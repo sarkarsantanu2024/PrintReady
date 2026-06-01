@@ -6,11 +6,14 @@ import {
   ChevronRight,
   Download,
   FileSpreadsheet,
+  FileText,
   Loader2,
   Lock,
   RotateCcw,
   Scissors,
+  Upload,
   Wifi,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -31,7 +34,7 @@ import { triggerDownload } from '@/lib/download';
 const MAX_FILES = 10;
 const MAX_SIZE_BYTES = 50 * 1024 * 1024;
 /** Free plan: how many PDFs a guest can process at once before the upgrade popup. */
-const FREE_PLAN_LIMIT = 3;
+const FREE_PLAN_LIMIT = 20;
 
 const differentiators = [
   {
@@ -57,8 +60,8 @@ const differentiators = [
 ];
 
 const tiers = [
-  { name: 'Free', price: '₹0', tag: 'Free', perks: ['3 PDFs / mo', 'No login', 'Auto photo + details'] },
-  { name: 'Business', price: '₹1499', tag: 'mo', perks: ['50 PDFs / mo', 'Login + Bulk CSV', 'Priority support'], featured: true },
+  { name: 'Free', price: '₹0', tag: 'Free', perks: ['20 PDFs / mo', 'No login', 'Auto photo + details'] },
+  { name: 'Business', price: '₹1499', tag: 'mo', perks: ['70 PDFs / mo', 'Login + Bulk CSV', 'Priority support'], featured: true },
   { name: 'Enterprise', price: '₹3000', tag: 'mo', perks: ['Unlimited PDFs', 'Student database', 'Dedicated support'] },
 ];
 
@@ -74,6 +77,8 @@ export default function Home() {
   const [previewIndex, setPreviewIndex] = useState(0);
   /** Upgrade popup shown when the free PDF limit is exceeded. */
   const [upgradeOpen, setUpgradeOpen] = useState(false);
+  /** Files selected but not yet processed — wait for the Upload button. */
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   // Branding (logo + header text/colours) is loaded from the last session so
   // the client never has to re-upload the logo.
   const [layout, setLayout] = useState<IdCardLayout>(loadBranding);
@@ -95,7 +100,52 @@ export default function Home() {
     );
   };
 
+  /**
+   * Stage dropped/selected files without processing them. Files with a name
+   * already in the list are skipped (a PDF can be added again only under a
+   * different name), and the list is capped at MAX_FILES per upload. The user
+   * can keep adding differently-named files across multiple drops.
+   */
+  const stageFiles = (files: File[]) => {
+    const merged = [...pendingFiles];
+    const duplicates: string[] = [];
+    let overflow = 0;
+
+    for (const f of files) {
+      if (merged.some((p) => p.name === f.name)) {
+        duplicates.push(f.name);
+        continue;
+      }
+      if (merged.length >= MAX_FILES) {
+        overflow++;
+        continue;
+      }
+      merged.push(f);
+    }
+
+    setPendingFiles(merged);
+
+    if (duplicates.length > 0) {
+      toast.error(
+        duplicates.length === 1
+          ? `"${duplicates[0]}" is already added. Rename the file to upload it again.`
+          : `${duplicates.length} files were skipped — a file with the same name is already added.`,
+      );
+    }
+    if (overflow > 0) {
+      toast.warning(
+        `You can upload up to ${MAX_FILES} PDFs at a time — ${overflow} extra file${
+          overflow === 1 ? '' : 's'
+        } were skipped.`,
+      );
+    }
+  };
+
+  const removePending = (index: number) =>
+    setPendingFiles((prev) => prev.filter((_, i) => i !== index));
+
   const handleFiles = async (files: File[]) => {
+    if (files.length === 0) return;
     const batch = files.slice(0, FREE_PLAN_LIMIT);
     if (files.length > FREE_PLAN_LIMIT) {
       // Free plan quota reached — let the user pick a paid plan by PDF count.
@@ -129,6 +179,7 @@ export default function Home() {
     setExtracted(results);
     setOriginalPhotos(results.map((r) => r.photoPng));
     setPreviewIndex(0);
+    setPendingFiles([]);
     setStep('review');
   };
 
@@ -150,6 +201,7 @@ export default function Home() {
     setExtracted([]);
     setOriginalPhotos([]);
     setPreviewIndex(0);
+    setPendingFiles([]);
     setProgress({ done: 0, total: 0 });
     // Keep the saved branding (logo/header) — "Start over" only clears the
     // uploaded cards, not the one-time logo.
@@ -178,13 +230,47 @@ export default function Home() {
 
             <div className="mx-auto mt-12 max-w-3xl">
               <DropZone
-                onAccepted={handleFiles}
+                onAccepted={stageFiles}
                 maxSizeBytes={MAX_SIZE_BYTES}
                 multiple
-                maxFiles={MAX_FILES}
                 accept={{ 'application/pdf': ['.pdf'] }}
+                primaryLabel="Drop your ID-card PDFs here, or click to browse"
+                formatsLabel="PDF only — up to 50 MB"
                 hint={`Bulk-upload up to ${MAX_FILES} ID-card PDFs at a time. Files are processed entirely in your browser.`}
               />
+
+              {pendingFiles.length > 0 && (
+                <div className="mt-4 space-y-3">
+                  <ul className="divide-y rounded-xl border bg-card">
+                    {pendingFiles.map((f, i) => (
+                      <li
+                        key={`${f.name}-${f.size}-${i}`}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm"
+                      >
+                        <FileText className="h-4 w-4 shrink-0 text-primary" />
+                        <span className="min-w-0 flex-1 truncate">{f.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => removePending(i)}
+                          className="text-muted-foreground transition hover:text-destructive"
+                          aria-label={`Remove ${f.name}`}
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  <div className="flex items-center justify-between gap-3">
+                    <Button variant="ghost" size="sm" onClick={() => setPendingFiles([])}>
+                      Clear
+                    </Button>
+                    <Button size="lg" onClick={() => handleFiles(pendingFiles)}>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Upload {pendingFiles.length} PDF{pendingFiles.length === 1 ? '' : 's'}
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           </>
         )}

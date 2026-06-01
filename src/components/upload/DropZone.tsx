@@ -16,6 +16,10 @@ interface DropZoneProps {
   /** Disabled message when plan doesn't allow uploads of this type. */
   disabled?: boolean;
   hint?: string;
+  /** Override the bold call-to-action line. */
+  primaryLabel?: string;
+  /** Override the supported-formats line (e.g. "PDF only — up to 50 MB"). */
+  formatsLabel?: string;
 }
 
 const ACCEPT = {
@@ -37,6 +41,8 @@ export function DropZone({
   accept,
   disabled = false,
   hint,
+  primaryLabel,
+  formatsLabel,
 }: DropZoneProps) {
   const onDrop = useCallback(
     (accepted: File[], rejections: FileRejection[]) => {
@@ -78,10 +84,13 @@ export function DropZone({
         <UploadIcon className="h-7 w-7" />
       </div>
       <p className="text-base font-semibold">
-        {isDragActive ? 'Drop to upload' : 'Drop your design here, or click to browse'}
+        {isDragActive
+          ? 'Drop to upload'
+          : (primaryLabel ?? 'Drop your design here, or click to browse')}
       </p>
       <p className="mt-1 text-xs text-muted-foreground">
-        PDF · JPG · PNG · WebP · SVG · TIFF · HEIC — up to {formatBytes(maxSizeBytes, 0)}
+        {formatsLabel ??
+          `PDF · JPG · PNG · WebP · SVG · TIFF · HEIC — up to ${formatBytes(maxSizeBytes, 0)}`}
       </p>
       {hint && <p className="mt-3 max-w-md text-xs text-muted-foreground">{hint}</p>}
     </div>
