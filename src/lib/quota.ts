@@ -50,18 +50,27 @@ interface QuotaRow {
   month: string;
 }
 
+/** Coerce a possibly-missing/string value to a finite number (never NaN). */
+const num = (v: unknown): number => {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+};
+
+function rowToUsage(data: unknown): Usage {
+  const r = (data ?? {}) as Partial<QuotaRow>;
+  return toUsage(num(r.used), num(r.granted), String(r.month ?? ''));
+}
+
 async function sbGet(): Promise<Usage | null> {
   const { data, error } = await supabase.rpc('pr_get_quota');
   if (error || !data) return null;
-  const r = data as QuotaRow;
-  return toUsage(r.used, r.granted, r.month);
+  return rowToUsage(data);
 }
 
 async function sbConsume(): Promise<Usage | null> {
   const { data, error } = await supabase.rpc('pr_add_usage');
   if (error || !data) return null;
-  const r = data as QuotaRow;
-  return toUsage(r.used, r.granted, r.month);
+  return rowToUsage(data);
 }
 
 async function sbRedeem(code: string): Promise<RedeemResult> {
@@ -69,9 +78,9 @@ async function sbRedeem(code: string): Promise<RedeemResult> {
     p_code: code.trim().toUpperCase(),
   });
   if (error || !data) return { ok: false, reason: 'Could not reach the server. Try again.' };
-  const r = data as QuotaRow & { ok: boolean; reason?: string };
+  const r = data as { ok: boolean; reason?: string };
   return r.ok
-    ? { ok: true, usage: toUsage(r.used, r.granted, r.month) }
+    ? { ok: true, usage: rowToUsage(data) }
     : { ok: false, reason: r.reason ?? 'Invalid code.' };
 }
 
