@@ -5,7 +5,6 @@ import { ThemeProvider } from '@/components/layout/ThemeProvider';
 import { ErrorBoundary } from '@/components/layout/ErrorBoundary';
 import { RequireAuth } from '@/components/layout/RequireAuth';
 import { Toaster } from '@/components/ui/sonner';
-import { SupabaseSetupBanner } from '@/components/shared/SupabaseSetupBanner';
 import { InstallPrompt } from '@/components/shared/InstallPrompt';
 import { Logo } from '@/components/shared/Logo';
 import { useAuthBootstrap } from '@/hooks/useAuth';
@@ -46,7 +45,6 @@ function AppRoutes() {
 
   return (
     <>
-      <SupabaseSetupBanner />
       <Routes>
         {/* Public */}
         <Route path="/" element={<Home />} />
