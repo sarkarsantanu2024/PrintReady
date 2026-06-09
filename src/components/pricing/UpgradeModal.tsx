@@ -1,7 +1,7 @@
-import { Sparkles, X } from 'lucide-react';
-import * as Dialog from '@radix-ui/react-dialog';
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
+import { Sparkles, X } from "lucide-react";
+import * as Dialog from "@radix-ui/react-dialog";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 interface UpgradeModalProps {
   open: boolean;
@@ -11,7 +11,12 @@ interface UpgradeModalProps {
   context: string;
 }
 
-export function UpgradeModal({ open, onOpenChange, reason, context }: UpgradeModalProps) {
+export function UpgradeModal({
+  open,
+  onOpenChange,
+  reason,
+  context,
+}: UpgradeModalProps) {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
@@ -35,19 +40,22 @@ export function UpgradeModal({ open, onOpenChange, reason, context }: UpgradeMod
             <li className="flex items-start gap-2">
               <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
               <span>
-                <strong>Business — ₹1499/mo</strong> · 70 PDF uploads, bulk CSV.
+                <strong>Business — ₹3200/mo</strong> · 150 PDF uploads, priority
+                support.
               </span>
             </li>
             <li className="flex items-start gap-2">
               <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
               <span>
-                <strong>Pro — ₹2499/mo</strong> · 170 PDF uploads, multiple users.
+                <strong>Pro — ₹2499/mo</strong> · 170 PDF uploads, multiple
+                users.
               </span>
             </li>
             <li className="flex items-start gap-2">
               <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
               <span>
-                <strong>Enterprise — ₹3000/mo</strong> · Unlimited uploads + student database.
+                <strong>Enterprise — ₹4500</strong> · Unlimited uploads +
+                student database.
               </span>
             </li>
           </ul>
@@ -56,7 +64,11 @@ export function UpgradeModal({ open, onOpenChange, reason, context }: UpgradeMod
             <Button asChild className="flex-1" size="lg">
               <Link to="/pricing">See plans</Link>
             </Button>
-            <Button variant="outline" size="lg" onClick={() => onOpenChange(false)}>
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() => onOpenChange(false)}
+            >
               Maybe later
             </Button>
           </div>

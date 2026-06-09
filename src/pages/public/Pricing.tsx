@@ -31,7 +31,7 @@ const tiers: TierConfig[] = [
     yearly: 6990,
     features: [
       '35 PDF uploads per month',
-      'Login required',
+      'Login not required',
       'Everything in Free',
       'No watermark on output',
     ],
@@ -46,10 +46,9 @@ const tiers: TierConfig[] = [
     monthly: 1499,
     yearly: 14990,
     features: [
-      '70 PDF uploads per month',
-      'Login required',
-      'Bulk CSV mode',
-      'Priority email support',
+      '150 PDF uploads per month',
+      'Login not required',
+      'Priority support',
     ],
     highlight: true,
     badge: 'Most popular',
@@ -65,7 +64,7 @@ const tiers: TierConfig[] = [
     yearly: 24990,
     features: [
       '170 PDF uploads per month',
-      'Login required',
+      'Login not required',
       'Multiple team members',
       'Multi-center branding',
     ],
@@ -81,7 +80,7 @@ const tiers: TierConfig[] = [
     yearly: 30000,
     features: [
       'Unlimited PDF uploads',
-      'Login required',
+      'Login not required',
       'Saved student database',
       'Dedicated support',
     ],
@@ -101,7 +100,7 @@ const faqs: { q: string; a: string }[] = [
   },
   {
     q: 'Do I need to log in?',
-    a: 'The Free plan (20 PDFs/month) needs no login. All paid plans require a login so your quota, history, and saved branding stay tied to your account.',
+    a: 'No login is required. Just upload your ID-card PDFs and generate your print-ready sheet — everything runs in your browser.',
   },
   {
     q: 'When does my monthly quota reset?',

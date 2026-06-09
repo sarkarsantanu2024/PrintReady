@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { LogIn, LogOut, Menu, User as UserIcon } from 'lucide-react';
+import { LogOut, Menu, User as UserIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -10,7 +10,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Logo } from '@/components/shared/Logo';
-import { ThemeToggle } from '@/components/shared/ThemeToggle';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
@@ -55,19 +54,11 @@ export function TopBar({ variant = 'public', onOpenDrawer }: TopBarProps) {
             <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-foreground">
               Home
             </Link>
-            <Link
-              to="/pricing"
-              className="text-sm font-medium text-muted-foreground hover:text-foreground"
-            >
-              Pricing
-            </Link>
           </nav>
         )}
 
         <div className="flex items-center gap-2">
-          <ThemeToggle />
-
-          {isAuthenticated ? (
+          {isAuthenticated && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" aria-label="Account menu">
@@ -93,12 +84,6 @@ export function TopBar({ variant = 'public', onOpenDrawer }: TopBarProps) {
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          ) : (
-            <Button asChild variant="outline" size="sm">
-              <Link to="/login">
-                <LogIn className="mr-1.5 h-4 w-4" /> Log in
-              </Link>
-            </Button>
           )}
         </div>
       </div>
