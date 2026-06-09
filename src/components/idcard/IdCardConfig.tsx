@@ -65,7 +65,7 @@ export function IdCardConfig({ layout, onChange }: Props) {
         </h3>
         <p className="mt-1 text-xs text-muted-foreground">
           Card size (88 × 56 mm), photo size and typography are fixed so 10
-          cards fill an A4 sheet. Only the header content is editable.
+          cards fill an A4 sheet. Edit the header content and card colour below.
         </p>
       </div>
 
@@ -151,9 +151,45 @@ export function IdCardConfig({ layout, onChange }: Props) {
           onChange={(v) => setHeader("textColor", v)}
         />
       </div>
+
+      <div>
+        <Label className="mb-1.5 block text-[10px]">Card background</Label>
+        <div className="mb-2 flex flex-wrap gap-1.5">
+          {CARD_BG_PRESETS.map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => onChange({ ...layout, cardBgColor: c })}
+              className={`h-7 w-7 rounded-md border transition ${
+                layout.cardBgColor.toLowerCase() === c.toLowerCase()
+                  ? "ring-2 ring-primary ring-offset-1"
+                  : "hover:scale-105"
+              }`}
+              style={{ background: c }}
+              aria-label={`Card background ${c}`}
+            />
+          ))}
+        </div>
+        <ColorField
+          label="Custom"
+          value={layout.cardBgColor}
+          onChange={(v) => onChange({ ...layout, cardBgColor: v })}
+        />
+      </div>
     </Card>
   );
 }
+
+const CARD_BG_PRESETS = [
+  "#fff164",
+  "#ffffff",
+  "#fde68a",
+  "#bfdbfe",
+  "#bbf7d0",
+  "#fbcfe8",
+  "#fed7aa",
+  "#e9d5ff",
+];
 
 function TextField({
   label,

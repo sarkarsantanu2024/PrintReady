@@ -34,11 +34,11 @@ const plans: { value: Plan; title: string; copy: string; badge?: string }[] = [
   {
     value: "business",
     title: "Business",
-    copy: "₹3200 · 70 PDFs / mo",
+    copy: "₹3200 · 100 PDFs / mo",
     badge: "Popular",
   },
   { value: "pro", title: "Pro", copy: "₹2499 · 170 PDFs / mo" },
-  { value: "enterprise", title: "Enterprise", copy: "₹3000 · Unlimited PDFs" },
+  { value: "enterprise", title: "Enterprise", copy: "₹4500 · Unlimited PDFs" },
 ];
 
 export default function Signup() {

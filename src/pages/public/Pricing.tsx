@@ -13,7 +13,7 @@ const tiers: TierConfig[] = [
     monthly: 0,
     yearly: 0,
     features: [
-      '20 PDF uploads per month',
+      '20 print-ready PDFs per month',
       'No login required',
       'Auto-extract photo + details from each PDF',
       'Print-ready A4 with crop marks',
@@ -30,7 +30,7 @@ const tiers: TierConfig[] = [
     monthly: 699,
     yearly: 6990,
     features: [
-      '35 PDF uploads per month',
+      '35 print-ready PDFs per month',
       'Login not required',
       'Everything in Free',
       'No watermark on output',
@@ -43,10 +43,10 @@ const tiers: TierConfig[] = [
     name: 'Business',
     badgeClass: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
     tagline: 'For busy centers with regular batches.',
-    monthly: 1499,
-    yearly: 14990,
+    monthly: 3200,
+    yearly: 32000,
     features: [
-      '150 PDF uploads per month',
+      '100 print-ready PDFs per month',
       'Login not required',
       'Priority support',
     ],
@@ -63,7 +63,7 @@ const tiers: TierConfig[] = [
     monthly: 2499,
     yearly: 24990,
     features: [
-      '170 PDF uploads per month',
+      '170 print-ready PDFs per month',
       'Login not required',
       'Multiple team members',
       'Multi-center branding',
@@ -76,10 +76,10 @@ const tiers: TierConfig[] = [
     name: 'Enterprise',
     badgeClass: 'bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-300',
     tagline: 'Unlimited volume with a saved student database.',
-    monthly: 3000,
-    yearly: 30000,
+    monthly: 4500,
+    yearly: 45000,
     features: [
-      'Unlimited PDF uploads',
+      'Unlimited print-ready PDFs',
       'Login not required',
       'Saved student database',
       'Dedicated support',
@@ -91,8 +91,8 @@ const tiers: TierConfig[] = [
 
 const faqs: { q: string; a: string }[] = [
   {
-    q: 'How does a PDF upload count?',
-    a: 'Each source PDF you upload and process counts as one against your monthly quota — regardless of how many cards it produces. Your plan limit is simply the number of PDFs you can process per month.',
+    q: 'How does the quota count?',
+    a: 'Each print-ready PDF you generate and download counts as one — no matter how many ID cards are on the sheet. Uploading and previewing PDFs is free; you are only billed when you download the final print-ready PDF.',
   },
   {
     q: 'What file types are supported?',
@@ -127,7 +127,7 @@ export default function Pricing() {
             Pricing built for printers
           </h1>
           <p className="mt-4 text-lg text-muted-foreground">
-            Start free with no login. Upgrade when you need more PDF uploads per month.
+            Start free with no login. Upgrade when you need more print-ready PDFs per month.
           </p>
 
           <div className="mt-8 inline-flex rounded-full border bg-card p-1">

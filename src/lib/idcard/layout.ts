@@ -58,7 +58,7 @@ export const DEFAULT_LAYOUT: IdCardLayout = {
 
   cardWidthMm: 88,
   cardHeightMm: 56,
-  cardBgColor: '#ffffff',
+  cardBgColor: '#fff164',
   cardBorderColor: '#c9ced3',
 
   photoWidthMm: 22,
@@ -66,7 +66,7 @@ export const DEFAULT_LAYOUT: IdCardLayout = {
   photoPadMm: 3,
 
   labelSize: 6,
-  valueSize: 7,
+  valueSize: 8,
   nameSize: 9,
   labelColor: '#6c7680',
   valueColor: '#1a1f26',
@@ -79,7 +79,7 @@ export const DEFAULT_LAYOUT: IdCardLayout = {
     website: 'www.mindmantraabacus.com',
     bgColor: '#e87d2e',
     textColor: '#ffffff',
-    heightMm: 10,
+    heightMm: 12.5,
   },
 };
 

@@ -34,28 +34,28 @@ export function UpgradeModal({
             <li className="flex items-start gap-2">
               <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
               <span>
-                <strong>Starter — ₹699/mo</strong> · 35 PDF uploads per month.
+                <strong>Starter — ₹699/mo</strong> · 35 print-ready PDFs per month.
               </span>
             </li>
             <li className="flex items-start gap-2">
               <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
               <span>
-                <strong>Business — ₹3200/mo</strong> · 150 PDF uploads, priority
-                support.
+                <strong>Business — ₹3200/mo</strong> · 100 print-ready PDFs,
+                priority support.
               </span>
             </li>
             <li className="flex items-start gap-2">
               <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
               <span>
-                <strong>Pro — ₹2499/mo</strong> · 170 PDF uploads, multiple
+                <strong>Pro — ₹2499/mo</strong> · 170 print-ready PDFs, multiple
                 users.
               </span>
             </li>
             <li className="flex items-start gap-2">
               <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
               <span>
-                <strong>Enterprise — ₹4500</strong> · Unlimited uploads +
-                student database.
+                <strong>Enterprise — ₹4500</strong> · Unlimited print-ready PDFs
+                + student database.
               </span>
             </li>
           </ul>

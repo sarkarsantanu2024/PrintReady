@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
-import { LogOut, Menu, User as UserIcon } from 'lucide-react';
+import { LogIn, LogOut, Menu, User as UserIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useIsLoggedIn, logout as clientLogout } from '@/lib/clientAuth';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +23,7 @@ interface TopBarProps {
 export function TopBar({ variant = 'public', onOpenDrawer }: TopBarProps) {
   const { user, profile, isAuthenticated } = useAuth();
   const reset = useAuthStore((s) => s.reset);
+  const clientAuthed = useIsLoggedIn();
 
   const onLogout = async () => {
     await supabase.auth.signOut();
@@ -30,7 +32,7 @@ export function TopBar({ variant = 'public', onOpenDrawer }: TopBarProps) {
   };
 
   return (
-    <header className="safe-top sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur">
+    <header className="safe-top sticky top-0 z-40 w-full border-b bg-card/95 backdrop-blur">
       <div className="container flex h-14 items-center justify-between gap-2">
         <div className="flex items-center gap-2">
           {variant === 'app' && onOpenDrawer && (
@@ -49,15 +51,22 @@ export function TopBar({ variant = 'public', onOpenDrawer }: TopBarProps) {
           </Link>
         </div>
 
-        {variant === 'public' && (
-          <nav className="hidden items-center gap-6 md:flex">
-            <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-              Home
-            </Link>
-          </nav>
-        )}
-
         <div className="flex items-center gap-2">
+          {variant === 'public' &&
+            (clientAuthed ? (
+              <Button variant="outline" size="sm" onClick={() => clientLogout()}>
+                <LogOut className="mr-1.5 h-4 w-4" /> Log out
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+              >
+                <LogIn className="mr-1.5 h-4 w-4" /> Log in
+              </Button>
+            ))}
+
           {isAuthenticated && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

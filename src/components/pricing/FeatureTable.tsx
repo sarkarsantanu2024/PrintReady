@@ -14,10 +14,10 @@ interface Row {
 
 const rows: Row[] = [
   {
-    label: "PDF uploads / month",
+    label: "Print-ready PDFs / month",
     free: "20",
     starter: "35",
-    business: "150",
+    business: "100",
     pro: "170",
     enterprise: "Unlimited",
   },
@@ -27,7 +27,7 @@ const rows: Row[] = [
     starter: "₹699",
     business: "₹3200",
     pro: "₹2499",
-    enterprise: "₹3000",
+    enterprise: "₹4500",
   },
   {
     label: "Auto-extract photo + details",
