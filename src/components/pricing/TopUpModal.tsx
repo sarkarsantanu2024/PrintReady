@@ -4,7 +4,14 @@ import * as Dialog from '@radix-ui/react-dialog';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { BASE_LIMIT, TOPUP_PRICE, TOPUP_SIZE, redeemTopupCode, type Usage } from '@/lib/quota';
+import {
+  PLAN_GRANT,
+  PLAN_PRICE,
+  TOPUP_PRICE,
+  TOPUP_SIZE,
+  redeemTopupCode,
+  type Usage,
+} from '@/lib/quota';
 
 interface Props {
   open: boolean;
@@ -15,8 +22,9 @@ interface Props {
 }
 
 /**
- * Shown when the client hits their monthly PDF limit. Offers a ₹500 top-up
- * (+30 PDFs) redeemed via a one-time code, or upgrading to Enterprise.
+ * Enter a paid code to add PDFs: a monthly plan code (₹3200 → 100) or a top-up
+ * code (₹500 → 30). Strict monthly — the month starts at 0 until a plan code is
+ * redeemed.
  */
 export function TopUpModal({ open, onOpenChange, usage, onRedeemed }: Props) {
   const [code, setCode] = useState('');
@@ -29,7 +37,7 @@ export function TopUpModal({ open, onOpenChange, usage, onRedeemed }: Props) {
     try {
       const res = await redeemTopupCode(code);
       if (res.ok) {
-        toast.success(`Top-up applied — ${TOPUP_SIZE} more PDFs unlocked this month.`);
+        toast.success('Code applied — your PDFs have been added for this month.');
         setCode('');
         onRedeemed();
       } else {
@@ -53,35 +61,41 @@ export function TopUpModal({ open, onOpenChange, usage, onRedeemed }: Props) {
             <Lock className="h-5 w-5" />
           </div>
           <Dialog.Title className="text-xl font-bold">
-            {atLimit ? 'Monthly PDF limit reached' : 'Top up your monthly PDFs'}
+            {atLimit ? 'Add PDFs for this month' : 'Top up your monthly PDFs'}
           </Dialog.Title>
           <Dialog.Description className="mt-2 text-sm text-muted-foreground">
-            You&apos;ve used <strong>{usage.used}</strong> of your{' '}
-            <strong>{usage.limit}</strong> PDFs this month
-            {usage.topups > 0 && ` (includes ${usage.topups} top-up${usage.topups === 1 ? '' : 's'})`}.
-            {atLimit
-              ? ' Buy a top-up to keep generating, or upgrade your plan.'
-              : ' Paid for a top-up? Enter your code below to add more.'}
+            You&apos;ve used <strong>{usage.used}</strong> of{' '}
+            <strong>{usage.limit}</strong> PDFs this month. Pay, then enter the
+            one-time code you receive to add more. Support:{' '}
+            <a href="tel:+919804243159" className="font-medium text-foreground hover:text-primary">
+              9804243159
+            </a>
+            .
           </Dialog.Description>
 
-          <div className="mt-5 rounded-xl border bg-muted/30 p-4">
-            <p className="text-sm font-semibold">
-              Top-up — ₹{TOPUP_PRICE} for {TOPUP_SIZE} more print-ready PDFs
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Pay ₹{TOPUP_PRICE} (support:{' '}
-              <a href="tel:+919804243159" className="font-medium text-foreground hover:text-primary">
-                9804243159
-              </a>
-              ), then enter the one-time code you receive below. Each code adds {TOPUP_SIZE}{' '}
-              print-ready PDFs and can be used once.
-            </p>
-            <div className="mt-3 flex gap-2">
+          <ul className="mt-4 space-y-1.5 text-sm">
+            <li className="flex items-start gap-2">
+              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+              <span>
+                <strong>Monthly plan — ₹{PLAN_PRICE}</strong> → {PLAN_GRANT} print-ready PDFs.
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+              <span>
+                <strong>Top-up — ₹{TOPUP_PRICE}</strong> → {TOPUP_SIZE} more print-ready PDFs.
+              </span>
+            </li>
+          </ul>
+
+          <div className="mt-4 rounded-xl border bg-muted/30 p-4">
+            <p className="text-sm font-semibold">Enter your code</p>
+            <div className="mt-2 flex gap-2">
               <Input
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
-                placeholder="TOP-XXXX-XXXX"
-                className="font-mono uppercase"
+                placeholder="PLAN-… or TOP-…"
+                className="min-w-0 font-mono uppercase"
                 onKeyDown={(e) => e.key === 'Enter' && apply()}
               />
               <Button onClick={apply} disabled={!code.trim() || busy}>
@@ -91,8 +105,8 @@ export function TopUpModal({ open, onOpenChange, usage, onRedeemed }: Props) {
           </div>
 
           <p className="mt-4 text-xs text-muted-foreground">
-            Need more every month? Upgrade to <strong>Enterprise — ₹4500/mo</strong> for unlimited
-            print-ready PDFs. Base plan covers {BASE_LIMIT} print-ready PDFs/month.
+            Each code can be used once. Need unlimited? Ask about the{' '}
+            <strong>Enterprise — ₹4500/mo</strong> plan.
           </p>
 
           <div className="mt-5">

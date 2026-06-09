@@ -152,7 +152,7 @@ function Row({
       </div>
 
       {open && (
-        <div className="mt-3 grid grid-cols-2 gap-3 rounded-md border bg-muted/20 p-3">
+        <div className="mt-3 grid grid-cols-1 gap-3 rounded-md border bg-muted/20 p-3 sm:grid-cols-2">
           <Field
             label="Name"
             value={card.fields.name}
@@ -200,21 +200,21 @@ function Field({
   textarea?: boolean;
 }) {
   return (
-    <div className={className}>
+    <div className={`min-w-0 ${className ?? ''}`}>
       <Label className="mb-1 block text-[10px]">{label}</Label>
       {textarea ? (
         <textarea
           rows={2}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm"
+          className="w-full min-w-0 rounded-md border border-input bg-background px-2 py-1.5 text-sm"
         />
       ) : (
         <input
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm"
+          className="h-9 w-full min-w-0 rounded-md border border-input bg-background px-2 text-sm"
         />
       )}
     </div>

@@ -11,6 +11,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Logo } from '@/components/shared/Logo';
+import { QuotaBadge } from '@/components/shared/QuotaBadge';
+import { QUOTA_ENABLED } from '@/lib/quota';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
@@ -33,8 +35,8 @@ export function TopBar({ variant = 'public', onOpenDrawer }: TopBarProps) {
 
   return (
     <header className="safe-top sticky top-0 z-40 w-full border-b bg-card/95 backdrop-blur">
-      <div className="container flex h-14 items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
+      <div className="container flex h-14 items-center gap-2">
+        <div className="flex flex-1 items-center gap-2">
           {variant === 'app' && onOpenDrawer && (
             <Button
               variant="ghost"
@@ -51,7 +53,13 @@ export function TopBar({ variant = 'public', onOpenDrawer }: TopBarProps) {
           </Link>
         </div>
 
-        <div className="flex items-center gap-2">
+        {variant === 'public' && clientAuthed && QUOTA_ENABLED && (
+          <div className="shrink-0">
+            <QuotaBadge />
+          </div>
+        )}
+
+        <div className="flex flex-1 items-center justify-end gap-2">
           {variant === 'public' &&
             (clientAuthed ? (
               <Button variant="outline" size="sm" onClick={() => clientLogout()}>

@@ -223,20 +223,20 @@ function ColorField({
   onChange: (v: string) => void;
 }) {
   return (
-    <div>
+    <div className="min-w-0">
       <Label className="mb-1 block text-[10px]">{label}</Label>
       <div className="flex items-center gap-2">
         <input
           type="color"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="h-9 w-12 cursor-pointer rounded-md border border-input bg-background"
+          className="h-9 w-10 shrink-0 cursor-pointer rounded-md border border-input bg-background"
         />
         <input
           type="text"
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="h-9 w-full rounded-md border border-input bg-background px-2 text-xs font-mono uppercase"
+          className="h-9 w-full min-w-0 rounded-md border border-input bg-background px-2 text-xs font-mono uppercase"
         />
       </div>
     </div>

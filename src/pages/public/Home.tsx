@@ -22,7 +22,6 @@ import { IdCardConfig } from "@/components/idcard/IdCardConfig";
 import { CardPreview } from "@/components/idcard/CardPreview";
 import { CardList } from "@/components/idcard/CardList";
 import { IdCardArt } from "@/components/idcard/IdCardArt";
-import { TopUpModal } from "@/components/pricing/TopUpModal";
 import { ClientLogin } from "@/components/auth/ClientLogin";
 import { extractIdCard } from "@/lib/idcard/extract";
 import { composeIdCardsPdf } from "@/lib/idcard/compose";
@@ -33,10 +32,10 @@ import { triggerDownload } from "@/lib/download";
 import { useIsLoggedIn } from "@/lib/clientAuth";
 import {
   consumeOne,
-  getUsage,
+  openTopup,
   QUOTA_ENABLED,
-  toUsage,
-  type Usage,
+  refreshQuota,
+  setQuota,
 } from "@/lib/quota";
 
 const MAX_FILES = 10;
@@ -104,25 +103,33 @@ export default function Home() {
   const [previewIndex, setPreviewIndex] = useState(0);
   /** Whether the client has signed in (fixed-credential gate). */
   const authed = useIsLoggedIn();
-  /** Monthly print-ready-PDF quota (Business plan: 100/mo + top-ups). */
-  const [usage, setUsage] = useState<Usage>(() => toUsage(0, 0, ""));
-  /** Lock + top-up modal shown when the monthly limit is reached. */
-  const [lockOpen, setLockOpen] = useState(false);
   /** Files selected but not yet processed — wait for the Upload button. */
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  /** Preview scale (mm→px) — smaller on phones so the 88mm card fits the screen. */
+  const [previewPx, setPreviewPx] = useState(4);
 
-  const refreshUsage = async () => setUsage(await getUsage());
-
-  // Load the current quota (from Supabase or the local fallback) on mount.
   useEffect(() => {
-    let active = true;
-    getUsage().then((u) => {
-      if (active) setUsage(u);
-    });
-    return () => {
-      active = false;
-    };
+    const update = () =>
+      setPreviewPx(
+        window.innerWidth < 420 ? 2.8 : window.innerWidth < 768 ? 3.4 : 4,
+      );
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
   }, []);
+
+  // On logout, clear any in-progress work so the next login starts fresh on the
+  // upload screen (not the previous review/customise state).
+  useEffect(() => {
+    if (!authed) {
+      setStep("idle");
+      setExtracted([]);
+      setOriginalPhotos([]);
+      setPreviewIndex(0);
+      setPendingFiles([]);
+      setProgress({ done: 0, total: 0 });
+    }
+  }, [authed]);
   // Branding (logo + header text/colours) is loaded from the last session so
   // the client never has to re-upload the logo.
   const [layout, setLayout] = useState<IdCardLayout>(loadBranding);
@@ -245,10 +252,9 @@ export default function Home() {
     // Each generated + downloaded print-ready PDF counts as ONE against the
     // monthly quota. Re-check the live (server) count, then block if exhausted.
     if (QUOTA_ENABLED) {
-      const fresh = await getUsage();
-      setUsage(fresh);
+      const fresh = await refreshQuota();
       if (fresh.remaining < 1) {
-        setLockOpen(true);
+        openTopup();
         toast.error(
           `You've used all ${fresh.limit} print-ready PDFs this month. Buy a top-up to generate more.`,
         );
@@ -261,7 +267,7 @@ export default function Home() {
       const blob = await composeIdCardsPdf(extracted, layout);
       triggerDownload(blob, `print-ready-id-cards-${extracted.length}.pdf`);
       // Bill one print-ready PDF only after a successful generate + download.
-      if (QUOTA_ENABLED) setUsage(await consumeOne());
+      if (QUOTA_ENABLED) setQuota(await consumeOne());
       setStep("done");
     } catch (err) {
       toast.error(
@@ -285,21 +291,10 @@ export default function Home() {
     setLayout(loadBranding());
   };
 
-  const usagePct =
-    usage.limit > 0
-      ? Math.min(100, Math.round((usage.used / usage.limit) * 100))
-      : 0;
-  const usageBarColor =
-    usage.remaining === 0
-      ? "bg-destructive"
-      : usagePct >= 80
-        ? "bg-amber-500"
-        : "bg-primary";
-
   if (!authed) {
     return (
       <PublicShell>
-        <ClientLogin onSuccess={() => refreshUsage()} />
+        <ClientLogin onSuccess={() => void refreshQuota()} />
       </PublicShell>
     );
   }
@@ -308,50 +303,6 @@ export default function Home() {
     <PublicShell>
       {/* Hero */}
       <section className="container py-16 md:py-24">
-        {/* Monthly print-ready-PDF quota bar (hidden while QUOTA_ENABLED is off) */}
-        {QUOTA_ENABLED && (
-          <div className="mx-auto mb-8 max-w-3xl rounded-xl border bg-card px-4 py-3">
-            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm">
-              <span className="font-medium">
-                Print-ready PDFs this month
-                {usage.topups > 0 && (
-                  <span className="ml-1.5 text-xs font-normal text-muted-foreground">
-                    (incl. {usage.topups} top-up{usage.topups === 1 ? "" : "s"})
-                  </span>
-                )}
-              </span>
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-muted-foreground">
-                  <strong className="text-foreground">{usage.used}</strong> of{" "}
-                  {usage.limit} generated ·{" "}
-                  <strong
-                    className={
-                      usage.remaining === 0
-                        ? "text-destructive"
-                        : "text-primary"
-                    }
-                  >
-                    {usage.remaining} left
-                  </strong>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setLockOpen(true)}
-                  className="text-xs font-medium text-primary hover:underline"
-                >
-                  Enter top-up code
-                </button>
-              </div>
-            </div>
-            <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-muted">
-              <div
-                className={`h-full rounded-full transition-all ${usageBarColor}`}
-                style={{ width: `${usagePct}%` }}
-              />
-            </div>
-          </div>
-        )}
-
         {step === "idle" && (
           <div className="grid items-center gap-10 lg:grid-cols-2">
             {/* Left: copy + illustration */}
@@ -437,10 +388,10 @@ export default function Home() {
               </div>
 
               <div className="grid gap-6 lg:grid-cols-12">
-                <div className="lg:col-span-5">
+                <div className="min-w-0 lg:col-span-5">
                   <IdCardConfig layout={layout} onChange={setLayout} />
                 </div>
-                <div className="space-y-4 lg:col-span-7">
+                <div className="min-w-0 space-y-4 lg:col-span-7">
                   <Card className="p-5">
                     <div className="mb-4 flex items-center justify-between gap-2">
                       <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
@@ -484,6 +435,7 @@ export default function Home() {
                       <CardPreview
                         layout={layout}
                         sample={extracted[previewIndex]}
+                        pxPerMm={previewPx}
                       />
                     </div>
                     <p className="mt-3 text-center text-xs text-muted-foreground">
@@ -529,6 +481,9 @@ export default function Home() {
         )}
       </section>
 
+      {/* Marketing sections only on the landing (upload) screen */}
+      {step === "idle" && (
+        <>
       {/* Differentiators */}
       <section className="border-t bg-white">
         <div className="container py-16">
@@ -595,9 +550,11 @@ export default function Home() {
           </Button>
         </div>
       </section>
+        </>
+      )}
 
       {/* Footer */}
-      <footer className="bg-neutral-900 text-neutral-300">
+      <footer className="mt-auto bg-neutral-900 text-neutral-300">
         <div className="container flex flex-col items-center gap-2 py-8 text-center text-sm">
           <p>
             © {new Date().getFullYear()} PrintReady · Design once. Print
@@ -634,16 +591,6 @@ export default function Home() {
           const f = pendingFiles;
           setPendingFiles([]);
           void handleFiles(f);
-        }}
-      />
-
-      <TopUpModal
-        open={lockOpen}
-        onOpenChange={setLockOpen}
-        usage={usage}
-        onRedeemed={() => {
-          refreshUsage();
-          setLockOpen(false);
         }}
       />
     </PublicShell>
