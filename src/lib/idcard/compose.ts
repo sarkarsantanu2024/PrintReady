@@ -103,64 +103,73 @@ function drawIdCard(
     borderWidth: 0.4,
   });
 
-  // Header strip — logo on left, company details on right
+  const innerX = x;
+  const innerRight = x + w;
+  const headerColor = rgb(headerText.r, headerText.g, headerText.b);
+
+  // Header strip — full-bleed across the top of the card.
   const headerH = mmToPt(layout.header.heightMm);
+  const headerTop = y + h - headerH;
   page.drawRectangle({
-    x,
-    y: y + h - headerH,
+    x: innerX,
+    y: headerTop,
     width: w,
     height: headerH,
     color: rgb(headerBg.r, headerBg.g, headerBg.b),
   });
 
-  const headerPad = mmToPt(2);
-  let textOriginX = x + headerPad;
+  const headerPad = mmToPt(3); // 12px @ 4px/mm
+  let textOriginX = innerX + headerPad;
 
+  // Fixed-height logo (≈30px in the preview) with space to its right.
   if (logo) {
-    const logoBoxH = headerH - headerPad * 2;
+    const logoBoxH = Math.min(mmToPt(7.5), headerH - mmToPt(2));
     const aspect = logo.width / logo.height;
-    const logoW = Math.min(logoBoxH * aspect, mmToPt(layout.header.heightMm * 1.4));
+    const logoW = logoBoxH * aspect;
     page.drawImage(logo, {
-      x: x + headerPad,
-      y: y + h - headerH + headerPad,
+      x: innerX + headerPad,
+      y: headerTop + (headerH - logoBoxH) / 2,
       width: logoW,
       height: logoBoxH,
     });
-    textOriginX = x + headerPad + logoW + mmToPt(2);
+    textOriginX = innerX + headerPad + logoW + mmToPt(3);
   }
 
-  // Header text block — name (bold), tagline, website
-  const headerTextRight = x + w - headerPad;
-  const headerTextWidth = headerTextRight - textOriginX;
-  const nameSize = Math.min(layout.nameSize, headerH / 2.4);
+  const nameSize = Math.min(layout.nameSize, headerH / 3);
   const subSize = Math.max(5, nameSize - 3);
-  const lineGap = 1.5;
-  const totalHeaderTextH = nameSize + lineGap + subSize + (layout.header.website ? lineGap + subSize : 0);
-  let lineY = y + h - headerH + (headerH + totalHeaderTextH) / 2 - nameSize;
 
-  drawClipped(page, layout.header.companyName, textOriginX, lineY, headerTextWidth, nameSize, fontBold, rgb(headerText.r, headerText.g, headerText.b));
+  // Company name (bold) + tagline + website, stacked and vertically centred.
+  const headerTextWidth = innerRight - headerPad - textOriginX;
+  const lineGap = 1.5;
+  const totalHeaderTextH =
+    nameSize +
+    (layout.header.tagline ? lineGap + subSize : 0) +
+    (layout.header.website ? lineGap + subSize : 0);
+  let lineY = headerTop + (headerH + totalHeaderTextH) / 2 - nameSize;
+
+  drawClipped(page, layout.header.companyName, textOriginX, lineY, headerTextWidth, nameSize, fontBold, headerColor);
   if (layout.header.tagline) {
     lineY -= subSize + lineGap;
-    drawClipped(page, layout.header.tagline, textOriginX, lineY, headerTextWidth, subSize, font, rgb(headerText.r, headerText.g, headerText.b));
+    drawClipped(page, layout.header.tagline, textOriginX, lineY, headerTextWidth, subSize, font, headerColor);
   }
   if (layout.header.website) {
     lineY -= subSize + lineGap;
-    drawClipped(page, layout.header.website, textOriginX, lineY, headerTextWidth, subSize, fontItalic, rgb(headerText.r, headerText.g, headerText.b));
+    drawClipped(page, layout.header.website, textOriginX, lineY, headerTextWidth, subSize, fontItalic, headerColor);
   }
 
-  // Photo slot — top-left, flush below the header (matches CSS preview).
-  const photoX = x + mmToPt(layout.photoPadMm);
+  // Photo slot — top-left, flush below the header.
+  const photoGap = mmToPt(3); // 12px body padding
+  const photoX = innerX + photoGap;
   const photoW = mmToPt(layout.photoWidthMm);
   const photoH = mmToPt(layout.photoHeightMm);
-  const photoY = y + h - headerH - mmToPt(layout.photoPadMm) - photoH;
+  const photoY = headerTop - photoGap - photoH;
+  // Background fill (shows behind a letter-boxed / missing photo).
   page.drawRectangle({
     x: photoX,
     y: photoY,
     width: photoW,
     height: photoH,
     color: rgb(0.94, 0.95, 0.97),
-    borderColor: rgb(border.r, border.g, border.b),
-    borderWidth: 0.3,
   });
   if (photo) {
     const ar = photo.width / photo.height;
@@ -176,11 +185,22 @@ function drawIdCard(
       height: drawH,
     });
   }
+  // Black frame drawn ON TOP of the photo so the border is always visible.
+  page.drawRectangle({
+    x: photoX,
+    y: photoY,
+    width: photoW,
+    height: photoH,
+    borderColor: rgb(0, 0, 0),
+    borderWidth: 1.5,
+  });
 
-  // Text block to the right of the photo
-  const textX = photoX + photoW + mmToPt(4);
-  const textW = x + w - textX - mmToPt(layout.photoPadMm);
-  let cursorY = y + h - headerH - mmToPt(2) - layout.valueSize;
+  // Text block to the right of the photo — top-aligned with the photo so the
+  // first label (NAME) lines up with the top edge of the image.
+  const textX = photoX + photoW + mmToPt(3);
+  const textW = innerRight - textX - mmToPt(3);
+  const photoTop = photoY + photoH;
+  let cursorY = photoTop - layout.labelSize * 0.72; // 0.72 ≈ Helvetica cap height
 
   const fields: { label: string; value: string; isName?: boolean }[] = [
     { label: 'Name', value: card.fields.name, isName: true },
@@ -200,8 +220,9 @@ function drawIdCard(
     });
     cursorY -= layout.labelSize + 2;
     const valSize = isName ? layout.nameSize : layout.valueSize;
-    const lines = wrapText(value || '—', textW, fontBold, valSize);
-    for (const line of lines.slice(0, 2)) {
+    // Wrap the full value across as many lines as needed (no truncation / "…").
+    const lines = wrapText(value || '—', textW, isName ? fontBold : font, valSize);
+    for (const line of lines) {
       page.drawText(line, {
         x: textX,
         y: cursorY,
@@ -212,7 +233,7 @@ function drawIdCard(
       cursorY -= valSize + 1;
     }
     // Breathing space between fields
-    cursorY -= 2;
+    cursorY -= 1.5;
   }
 }
 

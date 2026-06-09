@@ -4,35 +4,37 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    /* Body: warm cream #F4EFE5 → HSL 40 41% 93% */
+    --background: 40 41% 93%;
     --foreground: 222 47% 11%;
 
+    /* Cards / header strip stay pure white */
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    /* Brand: Deep teal #0D9488 → HSL 173 80% 32% */
-    --primary: 173 80% 32%;
+    /* Brand / buttons: #E14800 → HSL 19 100% 44% */
+    --primary: 19 100% 44%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96%;
+    --secondary: 40 30% 88%;
     --secondary-foreground: 222 47% 11%;
 
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 40 30% 90%;
+    --muted-foreground: 25 12% 42%;
 
-    /* Accent: Warm orange #F97316 → HSL 22 92% 53% */
-    --accent: 22 92% 53%;
+    /* Accent matches the brand orange */
+    --accent: 19 100% 44%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 173 80% 32%;
+    --border: 38 25% 85%;
+    --input: 38 25% 85%;
+    --ring: 19 100% 44%;
 
     --radius: 0.75rem;
   }

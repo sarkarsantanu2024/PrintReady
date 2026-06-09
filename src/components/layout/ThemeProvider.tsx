@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { ThemeContext, type Theme } from '@/hooks/useTheme';
 
-const STORAGE_KEY = 'printready:theme:v2';
+const STORAGE_KEY = 'printready:theme:v3';
 
 function readStoredTheme(): Theme {
-  if (typeof window === 'undefined') return 'dark';
+  if (typeof window === 'undefined') return 'light';
   const v = window.localStorage.getItem(STORAGE_KEY);
   if (v === 'light' || v === 'dark' || v === 'system') return v;
-  return 'dark';
+  return 'light';
 }
 
 function resolveSystemTheme(): 'light' | 'dark' {

@@ -19,7 +19,6 @@ export function CardPreview({ layout, sample, pxPerMm = 4 }: Props) {
   const headerH = layout.header.heightMm * pxPerMm;
   const photoW = layout.photoWidthMm * pxPerMm;
   const photoH = layout.photoHeightMm * pxPerMm;
-  const pad = layout.photoPadMm * pxPerMm;
   const photoSrc = sample.photoPng ? bytesToObjectUrl(sample.photoPng) : null;
 
   return (
@@ -32,123 +31,126 @@ export function CardPreview({ layout, sample, pxPerMm = 4 }: Props) {
         border: `1px solid ${layout.cardBorderColor}`,
       }}
     >
-      {/* Header */}
-      <div
-        className="flex items-center gap-4"
-        style={{
-          height: headerH,
-          background: layout.header.bgColor,
-          color: layout.header.textColor,
-          padding: `0 ${2 * pxPerMm}px`,
-        }}
-      >
-        {layout.header.logoDataUrl && (
-          // eslint-disable-next-line jsx-a11y/alt-text
-          <img
-            src={layout.header.logoDataUrl}
-            style={{
-              height: headerH - 4 * pxPerMm,
-              width: "auto",
-              objectFit: "contain",
-            }}
-          />
-        )}
-        <div className="flex min-w-0 flex-col leading-tight">
-          <span
-            style={{ fontSize: layout.nameSize * 1.2, fontWeight: 700 }}
-            className="truncate"
-          >
-            {layout.header.companyName}
-          </span>
-          {layout.header.tagline && (
-            <span
-              style={{ fontSize: (layout.nameSize - 3) * 1.2 }}
-              className="truncate opacity-95"
-            >
-              {layout.header.tagline}
-            </span>
-          )}
-          {layout.header.website && (
-            <span
-              style={{
-                fontSize: (layout.nameSize - 3) * 1.2,
-                fontStyle: "italic",
-              }}
-              className="truncate opacity-95"
-            >
-              {layout.header.website}
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Body */}
-      <div className="flex" style={{ padding: pad, gap: 4 * pxPerMm }}>
+      <div className="flex h-full flex-col">
+        {/* Header */}
         <div
+          className="flex items-center overflow-hidden"
           style={{
-            width: photoW,
-            height: photoH,
-            background: "#eef0f3",
-            border: `1px solid ${layout.cardBorderColor}`,
-            overflow: "hidden",
-            flexShrink: 0,
+            height: headerH,
+            background: layout.header.bgColor,
+            color: layout.header.textColor,
+            padding: `0 ${3 * pxPerMm}px`,
           }}
         >
-          {photoSrc && (
+          {layout.header.logoDataUrl && (
             // eslint-disable-next-line jsx-a11y/alt-text
             <img
-              src={photoSrc}
-              style={{ width: "100%", height: "100%", objectFit: "contain" }}
+              src={layout.header.logoDataUrl}
+              style={{
+                height: 7.5 * pxPerMm,
+                width: "auto",
+                marginRight: 3 * pxPerMm,
+                objectFit: "contain",
+              }}
             />
           )}
+          <div className="flex min-w-0 flex-col leading-tight">
+            <span
+              style={{ fontSize: layout.nameSize * 1.2, fontWeight: 700 }}
+              className="truncate"
+            >
+              {layout.header.companyName}
+            </span>
+            {layout.header.tagline && (
+              <span
+                style={{ fontSize: (layout.nameSize - 3) * 1.2 }}
+                className="truncate opacity-95"
+              >
+                {layout.header.tagline}
+              </span>
+            )}
+            {layout.header.website && (
+              <span
+                style={{
+                  fontSize: (layout.nameSize - 3) * 1.2,
+                  fontStyle: "italic",
+                }}
+                className="truncate opacity-95"
+              >
+                {layout.header.website}
+              </span>
+            )}
+          </div>
         </div>
-        <div className="min-w-0 flex-1">
-          <Field
-            label="Name"
-            value={sample.fields.name}
-            labelSize={layout.labelSize}
-            valueSize={layout.nameSize}
-            labelColor={layout.labelColor}
-            valueColor={layout.valueColor}
-            pxPerMm={pxPerMm}
-            bold
-          />
-          <Field
-            label="Center"
-            value={sample.fields.centerName}
-            labelSize={layout.labelSize}
-            valueSize={layout.valueSize}
-            labelColor={layout.labelColor}
-            valueColor={layout.valueColor}
-            pxPerMm={pxPerMm}
-          />
-          <Field
-            label="Phone"
-            value={sample.fields.phone}
-            labelSize={layout.labelSize}
-            valueSize={layout.valueSize}
-            labelColor={layout.labelColor}
-            valueColor={layout.valueColor}
-            pxPerMm={pxPerMm}
-          />
-          <Field
-            label="Address"
-            value={sample.fields.address}
-            labelSize={layout.labelSize}
-            valueSize={layout.valueSize}
-            labelColor={layout.labelColor}
-            valueColor={layout.valueColor}
-            pxPerMm={pxPerMm}
-          />
-          <Field
-            label="Guardian"
-            value={sample.fields.guardianName}
-            labelSize={layout.labelSize}
-            valueSize={layout.valueSize}
-            labelColor={layout.labelColor}
-            valueColor={layout.valueColor}
-            pxPerMm={pxPerMm}
-          />
+
+        {/* Body */}
+        <div className="flex" style={{ padding: 3 * pxPerMm, gap: 3 * pxPerMm }}>
+          <div
+            style={{
+              width: photoW,
+              height: photoH,
+              background: "#eef0f3",
+              border: `3px solid #000`,
+              overflow: "hidden",
+              flexShrink: 0,
+            }}
+          >
+            {photoSrc && (
+              // eslint-disable-next-line jsx-a11y/alt-text
+              <img
+                src={photoSrc}
+                style={{ width: "100%", height: "100%", objectFit: "contain" }}
+              />
+            )}
+          </div>
+          <div className="min-w-0 flex-1">
+            <Field
+              label="Name"
+              value={sample.fields.name}
+              labelSize={layout.labelSize}
+              valueSize={layout.nameSize}
+              labelColor={layout.labelColor}
+              valueColor={layout.valueColor}
+              pxPerMm={pxPerMm}
+              bold
+            />
+            <Field
+              label="Center"
+              value={sample.fields.centerName}
+              labelSize={layout.labelSize}
+              valueSize={layout.valueSize}
+              labelColor={layout.labelColor}
+              valueColor={layout.valueColor}
+              pxPerMm={pxPerMm}
+            />
+            <Field
+              label="Phone"
+              value={sample.fields.phone}
+              labelSize={layout.labelSize}
+              valueSize={layout.valueSize}
+              labelColor={layout.labelColor}
+              valueColor={layout.valueColor}
+              pxPerMm={pxPerMm}
+            />
+            <Field
+              label="Address"
+              value={sample.fields.address}
+              labelSize={layout.labelSize}
+              valueSize={layout.valueSize}
+              labelColor={layout.labelColor}
+              valueColor={layout.valueColor}
+              pxPerMm={pxPerMm}
+            />
+            <Field
+              label="Guardian"
+              value={sample.fields.guardianName}
+              labelSize={layout.labelSize}
+              valueSize={layout.valueSize}
+              labelColor={layout.labelColor}
+              valueColor={layout.valueColor}
+              pxPerMm={pxPerMm}
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -175,7 +177,7 @@ function Field({
   bold?: boolean;
 }) {
   return (
-    <div style={{ marginBottom: 1.5 * pxPerMm }}>
+    <div style={{ marginBottom: 1.2 * pxPerMm }}>
       <div
         style={{
           fontSize: labelSize * 1.2,
@@ -194,9 +196,7 @@ function Field({
           color: valueColor,
           fontWeight: bold ? 700 : 500,
           lineHeight: 1.15,
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
+          overflowWrap: "anywhere",
         }}
       >
         {value || "—"}

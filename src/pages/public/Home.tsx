@@ -10,30 +10,37 @@ import {
   Lock,
   RotateCcw,
   Scissors,
-  Upload,
   Wifi,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PublicShell } from "@/components/layout/AppShell";
 import { DropZone } from "@/components/upload/DropZone";
+import { PendingFilesModal } from "@/components/upload/PendingFilesModal";
 import { IdCardConfig } from "@/components/idcard/IdCardConfig";
 import { CardPreview } from "@/components/idcard/CardPreview";
 import { CardList } from "@/components/idcard/CardList";
-import { UpgradeModal } from "@/components/pricing/UpgradeModal";
+import { IdCardArt } from "@/components/idcard/IdCardArt";
+import { TopUpModal } from "@/components/pricing/TopUpModal";
+import { ClientLogin } from "@/components/auth/ClientLogin";
 import { extractIdCard } from "@/lib/idcard/extract";
 import { composeIdCardsPdf } from "@/lib/idcard/compose";
 import { type IdCardLayout } from "@/lib/idcard/layout";
 import { loadBranding, saveBranding } from "@/lib/idcard/branding";
 import type { ExtractedIdCard } from "@/lib/idcard/types";
 import { triggerDownload } from "@/lib/download";
+import { useIsLoggedIn } from "@/lib/clientAuth";
+import {
+  consumeOne,
+  getUsage,
+  QUOTA_ENABLED,
+  toUsage,
+  type Usage,
+} from "@/lib/quota";
 
 const MAX_FILES = 10;
 const MAX_SIZE_BYTES = 50 * 1024 * 1024;
-/** Free plan: how many PDFs a guest can process at once before the upgrade popup. */
-const FREE_PLAN_LIMIT = 20;
 
 const differentiators = [
   {
@@ -69,12 +76,12 @@ const tiers = [
     name: "Business",
     price: "₹3200",
     tag: "mo",
-    perks: ["150 PDFs / mo", "Login not required", "Priority support"],
+    perks: ["100 PDFs / mo", "Login not required", "Priority support"],
     featured: true,
   },
   {
     name: "Enterprise",
-    price: "₹3000",
+    price: "₹4500",
     tag: "mo",
     perks: ["Unlimited PDFs", "Student database", "Dedicated support"],
   },
@@ -95,10 +102,27 @@ export default function Home() {
   );
   /** Which card is shown in the live preview. */
   const [previewIndex, setPreviewIndex] = useState(0);
-  /** Upgrade popup shown when the free PDF limit is exceeded. */
-  const [upgradeOpen, setUpgradeOpen] = useState(false);
+  /** Whether the client has signed in (fixed-credential gate). */
+  const authed = useIsLoggedIn();
+  /** Monthly print-ready-PDF quota (Business plan: 100/mo + top-ups). */
+  const [usage, setUsage] = useState<Usage>(() => toUsage(0, 0, ""));
+  /** Lock + top-up modal shown when the monthly limit is reached. */
+  const [lockOpen, setLockOpen] = useState(false);
   /** Files selected but not yet processed — wait for the Upload button. */
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+
+  const refreshUsage = async () => setUsage(await getUsage());
+
+  // Load the current quota (from Supabase or the local fallback) on mount.
+  useEffect(() => {
+    let active = true;
+    getUsage().then((u) => {
+      if (active) setUsage(u);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
   // Branding (logo + header text/colours) is loaded from the last session so
   // the client never has to re-upload the logo.
   const [layout, setLayout] = useState<IdCardLayout>(loadBranding);
@@ -107,6 +131,20 @@ export default function Home() {
   useEffect(() => {
     saveBranding(layout);
   }, [layout]);
+
+  // Guard against losing extracted cards on an accidental refresh / tab close
+  // while reviewing or generating.
+  const hasWorkInProgress =
+    step === "review" || step === "generating" || step === "processing";
+  useEffect(() => {
+    if (!hasWorkInProgress) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [hasWorkInProgress]);
 
   const replacePhoto = (index: number, photoPng: Uint8Array | null) => {
     setExtracted((prev) =>
@@ -166,15 +204,11 @@ export default function Home() {
 
   const handleFiles = async (files: File[]) => {
     if (files.length === 0) return;
-    const batch = files.slice(0, FREE_PLAN_LIMIT);
-    if (files.length > FREE_PLAN_LIMIT) {
-      // Free plan quota reached — let the user pick a paid plan by PDF count.
-      setUpgradeOpen(true);
-      toast.info(
-        `Free plan covers ${FREE_PLAN_LIMIT} PDFs — processing the first ${FREE_PLAN_LIMIT}. Upgrade to do more.`,
-      );
-    }
 
+    // Note: the monthly quota is NOT charged here. Uploading/processing is free
+    // — the client is only billed when they actually generate the print-ready
+    // PDF (see handleGenerate). So "Start over" before generating costs nothing.
+    const batch = files;
     setStep("processing");
     setProgress({ done: 0, total: batch.length });
     setExtracted([]);
@@ -207,10 +241,27 @@ export default function Home() {
 
   const handleGenerate = async () => {
     if (extracted.length === 0) return;
+
+    // Each generated + downloaded print-ready PDF counts as ONE against the
+    // monthly quota. Re-check the live (server) count, then block if exhausted.
+    if (QUOTA_ENABLED) {
+      const fresh = await getUsage();
+      setUsage(fresh);
+      if (fresh.remaining < 1) {
+        setLockOpen(true);
+        toast.error(
+          `You've used all ${fresh.limit} print-ready PDFs this month. Buy a top-up to generate more.`,
+        );
+        return;
+      }
+    }
+
     setStep("generating");
     try {
       const blob = await composeIdCardsPdf(extracted, layout);
       triggerDownload(blob, `print-ready-id-cards-${extracted.length}.pdf`);
+      // Bill one print-ready PDF only after a successful generate + download.
+      if (QUOTA_ENABLED) setUsage(await consumeOne());
       setStep("done");
     } catch (err) {
       toast.error(
@@ -234,28 +285,93 @@ export default function Home() {
     setLayout(loadBranding());
   };
 
+  const usagePct =
+    usage.limit > 0
+      ? Math.min(100, Math.round((usage.used / usage.limit) * 100))
+      : 0;
+  const usageBarColor =
+    usage.remaining === 0
+      ? "bg-destructive"
+      : usagePct >= 80
+        ? "bg-amber-500"
+        : "bg-primary";
+
+  if (!authed) {
+    return (
+      <PublicShell>
+        <ClientLogin onSuccess={() => refreshUsage()} />
+      </PublicShell>
+    );
+  }
+
   return (
     <PublicShell>
       {/* Hero */}
       <section className="container py-16 md:py-24">
+        {/* Monthly print-ready-PDF quota bar (hidden while QUOTA_ENABLED is off) */}
+        {QUOTA_ENABLED && (
+          <div className="mx-auto mb-8 max-w-3xl rounded-xl border bg-card px-4 py-3">
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-sm">
+              <span className="font-medium">
+                Print-ready PDFs this month
+                {usage.topups > 0 && (
+                  <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                    (incl. {usage.topups} top-up{usage.topups === 1 ? "" : "s"})
+                  </span>
+                )}
+              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-muted-foreground">
+                  <strong className="text-foreground">{usage.used}</strong> of{" "}
+                  {usage.limit} generated ·{" "}
+                  <strong
+                    className={
+                      usage.remaining === 0
+                        ? "text-destructive"
+                        : "text-primary"
+                    }
+                  >
+                    {usage.remaining} left
+                  </strong>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setLockOpen(true)}
+                  className="text-xs font-medium text-primary hover:underline"
+                >
+                  Enter top-up code
+                </button>
+              </div>
+            </div>
+            <div className="mt-2 h-2.5 w-full overflow-hidden rounded-full bg-muted">
+              <div
+                className={`h-full rounded-full transition-all ${usageBarColor}`}
+                style={{ width: `${usagePct}%` }}
+              />
+            </div>
+          </div>
+        )}
+
         {step === "idle" && (
-          <>
-            <div className="mx-auto max-w-3xl text-center">
+          <div className="grid items-center gap-10 lg:grid-cols-2">
+            {/* Left: copy + illustration */}
+            <div className="text-center lg:text-left">
               <p className="mb-4 inline-flex rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
                 Print-engineered output
               </p>
-              <h1 className="text-balance text-4xl font-extrabold tracking-tight md:text-6xl">
+              <h1 className="text-balance text-4xl font-extrabold tracking-tight md:text-5xl">
                 Design once.{" "}
                 <span className="text-primary">Print perfectly.</span>
               </h1>
-              <p className="mx-auto mt-5 max-w-2xl text-pretty text-lg text-muted-foreground">
+              <p className="mt-5 text-pretty text-lg text-muted-foreground">
                 Drop up to {MAX_FILES} ID-card PDFs. PrintReady extracts the
                 photo and details, strips the repetitive header, and lays out
                 clean cards on A4 with crop marks — all in your browser.
               </p>
             </div>
 
-            <div className="mx-auto mt-12 max-w-3xl">
+            {/* Right: upload box */}
+            <div>
               <DropZone
                 onAccepted={stageFiles}
                 maxSizeBytes={MAX_SIZE_BYTES}
@@ -265,48 +381,11 @@ export default function Home() {
                 formatsLabel="PDF only — up to 50 MB"
                 hint={`Bulk-upload up to ${MAX_FILES} ID-card PDFs at a time. Files are processed entirely in your browser.`}
               />
-
-              {pendingFiles.length > 0 && (
-                <div className="mt-4 space-y-3">
-                  <ul className="divide-y rounded-xl border bg-card">
-                    {pendingFiles.map((f, i) => (
-                      <li
-                        key={`${f.name}-${f.size}-${i}`}
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm"
-                      >
-                        <FileText className="h-4 w-4 shrink-0 text-primary" />
-                        <span className="min-w-0 flex-1 truncate">
-                          {f.name}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => removePending(i)}
-                          className="text-muted-foreground transition hover:text-destructive"
-                          aria-label={`Remove ${f.name}`}
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="flex items-center justify-between gap-3">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setPendingFiles([])}
-                    >
-                      Clear
-                    </Button>
-                    <Button size="lg" onClick={() => handleFiles(pendingFiles)}>
-                      <Upload className="mr-2 h-4 w-4" />
-                      Upload {pendingFiles.length} PDF
-                      {pendingFiles.length === 1 ? "" : "s"}
-                    </Button>
-                  </div>
-                </div>
-              )}
+              <div className="mt-10 lg:hidden">
+                <IdCardArt className="mx-auto w-full max-w-xs" />
+              </div>
             </div>
-          </>
+          </div>
         )}
 
         {step === "processing" && (
@@ -451,7 +530,7 @@ export default function Home() {
       </section>
 
       {/* Differentiators */}
-      <section className="border-t bg-muted/30">
+      <section className="border-t bg-white">
         <div className="container py-16">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-3xl font-bold">
@@ -510,7 +589,7 @@ export default function Home() {
             </Card>
           ))}
         </div>
-        <div className="mt-8 text-center">
+        <div className="mt-8 text-center hidden">
           <Button asChild variant="outline" size="lg">
             <Link to="/pricing">See full comparison</Link>
           </Button>
@@ -518,20 +597,54 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t">
-        <div className="container flex items-center justify-center py-6 text-sm text-muted-foreground">
+      <footer className="bg-neutral-900 text-neutral-300">
+        <div className="container flex flex-col items-center gap-2 py-8 text-center text-sm">
           <p>
             © {new Date().getFullYear()} PrintReady · Design once. Print
             perfectly.
           </p>
+          <p>
+            Support:{" "}
+            <a
+              href="tel:+919804243159"
+              className="font-medium text-white hover:text-primary"
+            >
+              9804243159
+            </a>
+          </p>
+          <p className="text-xs text-neutral-400">
+            Developed by{" "}
+            <a
+              href="https://santanu-portfolio-frontend.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-primary hover:underline"
+            >
+              Santanu Sarkar
+            </a>
+          </p>
         </div>
       </footer>
 
-      <UpgradeModal
-        open={upgradeOpen}
-        onOpenChange={setUpgradeOpen}
-        context="Free plan limit reached"
-        reason={`The Free plan processes ${FREE_PLAN_LIMIT} PDFs at a time with no login. Pick a plan below to process more PDFs each month.`}
+      <PendingFilesModal
+        files={pendingFiles}
+        onRemove={removePending}
+        onClear={() => setPendingFiles([])}
+        onUpload={() => {
+          const f = pendingFiles;
+          setPendingFiles([]);
+          void handleFiles(f);
+        }}
+      />
+
+      <TopUpModal
+        open={lockOpen}
+        onOpenChange={setLockOpen}
+        usage={usage}
+        onRedeemed={() => {
+          refreshUsage();
+          setLockOpen(false);
+        }}
       />
     </PublicShell>
   );
