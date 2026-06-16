@@ -137,38 +137,32 @@ async function extractPhoto(page: any, pdfjs: any): Promise<Uint8Array | null> {
 /**
  * Among all images on the page, choose the one that is the student photograph.
  *
- * On these cards the page also contains the institute logo (small, roughly
- * square) and the orange header band (very wide, landscape) — neither is the
- * photo. A passport-style student photo is always *portrait* (taller than wide)
- * and the largest such image. So we reject wide bands, favour portrait images,
- * and break ties by drawn area.
+ * A passport-style student photo is always *portrait* (taller than wide). The
+ * other images on the page are never portrait: the institute logo/wordmark and
+ * orange header band are landscape, and — depending on the exporter version —
+ * the card may also contain a flattened raster of the *whole card* (landscape,
+ * aspect ~1.45). That full-card raster has the largest drawn area on the page,
+ * so a pure area/score ranking would wrongly pick it.
+ *
+ * Decisive rule: if ANY portrait image exists, the photo is the largest of
+ * those, and we never consider a landscape image. Landscape images are only
+ * used as a last-resort fallback when the page has no portrait image at all.
  */
 function pickStudentPhoto(candidates: ImageBox[]): ImageBox | null {
   if (candidates.length === 0) return null;
   if (candidates.length === 1) return candidates[0];
 
-  let best: ImageBox | null = null;
-  let bestScore = -Infinity;
-  for (const c of candidates) {
-    const aspect = c.w / c.h; // < 1 = portrait, > 1 = landscape
-    // Skip the header band and other clearly-landscape artwork.
-    if (aspect > 1.6) continue;
-    // Portrait images (the photo) score on full area; squarish/landscape
-    // images (logos) are penalised so a large photo always wins.
-    const portraitWeight = aspect <= 1.1 ? 1 : 0.35;
-    const score = c.w * c.h * portraitWeight;
-    if (score > bestScore) {
-      bestScore = score;
-      best = c;
-    }
+  // The student photo is portrait. Allow a small landscape tolerance (1.1) for
+  // near-square crops, but anything wider (header band, full-card raster) is
+  // excluded from the primary selection regardless of how large it is.
+  const portraits = candidates.filter((c) => c.w / c.h <= 1.1);
+  if (portraits.length > 0) {
+    return portraits.reduce((a, b) => (a.w * a.h >= b.w * b.h ? a : b));
   }
 
-  // If every image looked like a band (none passed the filter), fall back to
-  // the largest image so we still return something rather than nothing.
-  if (!best) {
-    best = candidates.reduce((a, b) => (a.w * a.h >= b.w * b.h ? a : b));
-  }
-  return best;
+  // No portrait image on the page — fall back to the largest image so we still
+  // return something rather than nothing.
+  return candidates.reduce((a, b) => (a.w * a.h >= b.w * b.h ? a : b));
 }
 
 function multiplyMatrix(a: number[], b: number[]): number[] {
