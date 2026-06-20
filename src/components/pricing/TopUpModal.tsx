@@ -114,7 +114,7 @@ export function TopUpModal({ open, onOpenChange, usage, onRedeemed }: Props) {
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm data-[state=open]:animate-in data-[state=open]:fade-in-0" />
-        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[92vh] w-full max-w-md -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border bg-card p-6 shadow-xl data-[state=open]:animate-in data-[state=open]:fade-in-0">
+        <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[92vh] w-full max-w-2xl -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-2xl border bg-card p-6 shadow-xl data-[state=open]:animate-in data-[state=open]:fade-in-0">
           {paid ? (
             /* ----------------------- Payment confirmed ----------------------- */
             <>
@@ -194,44 +194,48 @@ export function TopUpModal({ open, onOpenChange, usage, onRedeemed }: Props) {
                 ))}
               </div>
 
-              {/* PhonePe QR */}
-              <div className="mt-4 rounded-xl border bg-white p-4 text-center">
-                <div className="flex items-center justify-center gap-1.5 font-semibold text-[#5f259f]">
-                  <Smartphone className="h-4 w-4" /> Pay with PhonePe
+              {/* QR + code entry side by side (stacks on mobile) */}
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {/* PhonePe QR */}
+                <div className="rounded-xl border bg-white p-4 text-center">
+                  <div className="flex items-center justify-center gap-1.5 font-semibold text-[#5f259f]">
+                    <Smartphone className="h-4 w-4" /> Pay with PhonePe
+                  </div>
+                  <p className="mt-0.5 text-xs text-muted-foreground">Scan &amp; Pay using any UPI app</p>
+                  <div className="mt-3 inline-flex rounded-lg border bg-white p-3">
+                    <QRCodeCanvas value={upiUri(amount)} size={168} level="Q" marginSize={4} />
+                  </div>
+                  <p className="mt-2 text-sm font-bold text-foreground">Pay ₹{amount}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {UPI.payeeName} · {UPI.vpa}
+                  </p>
                 </div>
-                <p className="mt-0.5 text-xs text-muted-foreground">Scan &amp; Pay using any UPI app</p>
-                <div className="mt-3 inline-flex rounded-lg border bg-white p-2">
-                  <QRCodeCanvas value={upiUri(amount)} size={168} level="M" includeMargin={false} />
+
+                {/* Code entry + note */}
+                <div className="flex flex-col justify-center">
+                  <div className="rounded-xl border bg-muted/30 p-4">
+                    <p className="text-sm font-semibold">Enter the code you received</p>
+                    <div className="mt-2 flex gap-2">
+                      <Input
+                        value={code}
+                        onChange={(e) => setCode(e.target.value)}
+                        placeholder="PDF-JUNE-2026 or TOP-…"
+                        className="min-w-0 font-mono uppercase"
+                        onKeyDown={(e) => e.key === 'Enter' && apply()}
+                      />
+                      <Button onClick={apply} disabled={!code.trim() || busy}>
+                        {busy ? 'Applying…' : 'Apply'}
+                      </Button>
+                    </div>
+                  </div>
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    Each code can be used once. Need unlimited? Ask about the{' '}
+                    <strong>Enterprise — ₹4500/mo</strong> plan.
+                  </p>
                 </div>
-                <p className="mt-2 text-sm font-bold text-foreground">Pay ₹{amount}</p>
-                <p className="text-xs text-muted-foreground">
-                  {UPI.payeeName} · {UPI.vpa}
-                </p>
               </div>
 
-              {/* Code entry */}
-              <div className="mt-4 rounded-xl border bg-muted/30 p-4">
-                <p className="text-sm font-semibold">Enter the code you received</p>
-                <div className="mt-2 flex gap-2">
-                  <Input
-                    value={code}
-                    onChange={(e) => setCode(e.target.value)}
-                    placeholder="PDF-JUNE-2026 or TOP-…"
-                    className="min-w-0 font-mono uppercase"
-                    onKeyDown={(e) => e.key === 'Enter' && apply()}
-                  />
-                  <Button onClick={apply} disabled={!code.trim() || busy}>
-                    {busy ? 'Applying…' : 'Apply'}
-                  </Button>
-                </div>
-              </div>
-
-              <p className="mt-4 text-xs text-muted-foreground">
-                Each code can be used once. Need unlimited? Ask about the{' '}
-                <strong>Enterprise — ₹4500/mo</strong> plan.
-              </p>
-
-              <div className="mt-5">
+              <div className="mt-4">
                 <Button variant="outline" className="w-full" onClick={() => onOpenChange(false)}>
                   Close
                 </Button>

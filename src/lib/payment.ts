@@ -8,10 +8,10 @@
 
 /** Merchant UPI details the PhonePe QR pays into. */
 export const UPI = {
-  /** Merchant UPI ID (VPA). REPLACE with the real PhonePe/UPI handle. */
-  vpa: 'santanusarkar@ybl',
+  /** Merchant UPI ID (VPA) — ICICI Bank (santanusarkar69@ibl). */
+  vpa: 'santanusarkar69@ibl',
   payeeName: 'SANTANU SARKAR',
-  note: 'PrintReady subscription',
+  note: 'PrintReady',
 } as const;
 
 /**
@@ -19,14 +19,20 @@ export const UPI = {
  * scan in PhonePe (or any UPI app) opens straight to "Pay ₹<amount> to <payee>".
  */
 export function upiUri(amount: number): string {
-  const params = new URLSearchParams({
-    pa: UPI.vpa,
-    pn: UPI.payeeName,
-    am: amount.toFixed(2),
-    cu: 'INR',
-    tn: UPI.note,
-  });
-  return `upi://pay?${params.toString()}`;
+  // Encode spaces as %20 (not "+", which some UPI apps mis-decode), but keep the
+  // VPA's "@" literal — UPI apps expect a raw "@" in `pa`, and an encoded %40 can
+  // itself cause "Unable to scan QR".
+  const enc = (v: string) => encodeURIComponent(v).replace(/%40/g, '@');
+  const params = [
+    ['pa', UPI.vpa],
+    ['pn', UPI.payeeName],
+    ['am', amount.toFixed(2)],
+    ['cu', 'INR'],
+    ['tn', UPI.note],
+  ]
+    .map(([k, v]) => `${k}=${enc(v)}`)
+    .join('&');
+  return `upi://pay?${params}`;
 }
 
 /** Seller block printed on the GST invoice. Fill in the real legal details. */
