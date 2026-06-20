@@ -34,7 +34,7 @@ const plans: { value: Plan; title: string; copy: string; badge?: string }[] = [
   {
     value: "business",
     title: "Business",
-    copy: "₹3200 · 100 PDFs / mo",
+    copy: "₹1960 · 130 PDFs / mo",
     badge: "Popular",
   },
   { value: "pro", title: "Pro", copy: "₹2499 · 170 PDFs / mo" },

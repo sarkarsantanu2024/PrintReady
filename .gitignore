@@ -41,3 +41,6 @@ workbox-*.js
 .cache
 coverage
 *.tsbuildinfo
+
+# Live redemption codes (secrets) — generated per year, never commit
+supabase/provision-*.sql

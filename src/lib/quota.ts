@@ -6,24 +6,24 @@ import { isSupabaseConfigured, supabase } from './supabase';
  *
  * Nothing is free: the month starts at 0 and PDFs are only granted by redeeming
  * a code that YOU issue after receiving payment.
- *   - Plan code  (₹3200) → +100 PDFs for the month.
+ *   - Plan code  (₹1960) → +130 PDFs for the month.
  *   - Top-up code (₹500) → +30 PDFs.
  * Everything resets to 0 on the 1st (no rollover).
  *
  * Storage:
  *  - Supabase configured → server-side, shared across devices, tamper-proof
  *    (see supabase/migrations/0002_quota.sql). Codes are rows you insert; their
- *    `credits` decide the grant (100 or 30).
+ *    `credits` decide the grant (130 or 30).
  *  - Otherwise → localStorage fallback (demo only). Codes are signed offline
- *    (PLAN-… = 100, TOP-… = 30) via scripts/gen-topup.mjs.
+ *    (PLAN-… = 130, TOP-… = 30) via scripts/gen-topup.mjs.
  */
 export const QUOTA_ENABLED = true;
 
-export const PLAN_GRANT = 100; // ₹3200 monthly plan
-export const PLAN_PRICE = 3200;
+export const PLAN_GRANT = 130; // ₹1960 monthly plan
+export const PLAN_PRICE = 1960;
 export const TOPUP_SIZE = 30; // ₹500 top-up
 export const TOPUP_PRICE = 500;
-/** Kept for UI copy ("plan covers 100 PDFs/month"). */
+/** Kept for UI copy ("plan covers 130 PDFs/month"). */
 export const BASE_LIMIT = PLAN_GRANT;
 
 const SECRET = 'MMA-PRINTREADY-2026';
@@ -125,7 +125,7 @@ function sign(serial: string): string {
   for (let i = 0; i < input.length; i++) h = ((h << 5) + h + input.charCodeAt(i)) >>> 0;
   return h.toString(36).toUpperCase().padStart(4, '0').slice(-4);
 }
-/** Returns the credit value of a signed code (PLAN-… = 100, TOP-… = 30), or null. */
+/** Returns the credit value of a signed code (PLAN-… = 130, TOP-… = 30), or null. */
 function codeValue(code: string): number | null {
   const m = code.match(/^(PLAN|TOP)-([A-Z0-9]{2,})-([A-Z0-9]{4})$/);
   if (!m || sign(m[2]) !== m[3]) return null;

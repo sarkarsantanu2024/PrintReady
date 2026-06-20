@@ -89,7 +89,7 @@ begin
   v_limit := case v_plan
     when 'free'       then 20
     when 'starter'    then 35
-    when 'business'   then 100
+    when 'business'   then 130
     when 'pro'        then 170
     when 'enterprise' then 100000
     else 20
@@ -148,7 +148,7 @@ begin
   v_limit := case v_plan
     when 'free'       then 20
     when 'starter'    then 35
-    when 'business'   then 100
+    when 'business'   then 130
     when 'pro'        then 170
     when 'enterprise' then 100000
     else 20

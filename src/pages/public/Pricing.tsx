@@ -43,10 +43,10 @@ const tiers: TierConfig[] = [
     name: 'Business',
     badgeClass: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
     tagline: 'For busy centers with regular batches.',
-    monthly: 3200,
-    yearly: 32000,
+    monthly: 1960,
+    yearly: 19600,
     features: [
-      '100 print-ready PDFs per month',
+      '130 print-ready PDFs per month',
       'Login not required',
       'Priority support',
     ],

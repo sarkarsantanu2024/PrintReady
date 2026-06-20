@@ -18,6 +18,10 @@ import { Card } from "@/components/ui/card";
 import { PublicShell } from "@/components/layout/AppShell";
 import { DropZone } from "@/components/upload/DropZone";
 import { PendingFilesModal } from "@/components/upload/PendingFilesModal";
+import {
+  UploadAdvisoryModal,
+  type UploadAdvisory,
+} from "@/components/upload/UploadAdvisoryModal";
 import { IdCardConfig } from "@/components/idcard/IdCardConfig";
 import { CardPreview } from "@/components/idcard/CardPreview";
 import { CardList } from "@/components/idcard/CardList";
@@ -40,6 +44,8 @@ import {
 
 const MAX_FILES = 10;
 const MAX_SIZE_BYTES = 50 * 1024 * 1024;
+/** Above this, we advise the client to upload a lighter PDF next time. */
+const ADVISORY_SIZE_BYTES = 3 * 1024 * 1024;
 
 const differentiators = [
   {
@@ -73,9 +79,9 @@ const tiers = [
   },
   {
     name: "Business",
-    price: "₹3200",
+    price: "₹1960",
     tag: "mo",
-    perks: ["100 PDFs / mo", "Login not required", "Priority support"],
+    perks: ["130 PDFs / mo", "Login not required", "Priority support"],
     featured: true,
   },
   {
@@ -105,6 +111,8 @@ export default function Home() {
   const authed = useIsLoggedIn();
   /** Files selected but not yet processed — wait for the Upload button. */
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  /** Per-file advisories (heavy / non-standard PDFs) shown after processing. */
+  const [advisories, setAdvisories] = useState<UploadAdvisory[]>([]);
   /** Preview scale (mm→px) — smaller on phones so the 88mm card fits the screen. */
   const [previewPx, setPreviewPx] = useState(4);
 
@@ -221,17 +229,29 @@ export default function Home() {
     setExtracted([]);
 
     const results: ExtractedIdCard[] = [];
+    const advice: UploadAdvisory[] = [];
     for (let i = 0; i < batch.length; i++) {
+      const f = batch[i];
+      const reasons: UploadAdvisory["reasons"] = [];
+      if (f.size > ADVISORY_SIZE_BYTES) reasons.push("oversize");
       try {
-        const card = await extractIdCard(batch[i]);
+        const card = await extractIdCard(f);
         results.push(card);
+        // A flattened "Save as PDF"/scanned card (no clean embedded photo) is
+        // the irregular format we now handle but want to flag for next time.
+        if (card.photoSource !== "embedded") reasons.push("irregular");
       } catch (err) {
+        reasons.push("failed");
         toast.error(
-          `${batch[i].name}: ${err instanceof Error ? err.message : "extraction failed"}`,
+          `${f.name}: ${err instanceof Error ? err.message : "extraction failed"}`,
         );
+      }
+      if (reasons.length > 0) {
+        advice.push({ filename: f.name, sizeMB: f.size / (1024 * 1024), reasons });
       }
       setProgress({ done: i + 1, total: batch.length });
     }
+    setAdvisories(advice);
 
     if (results.length === 0) {
       toast.error("No ID cards could be extracted from those files.");
@@ -285,6 +305,7 @@ export default function Home() {
     setOriginalPhotos([]);
     setPreviewIndex(0);
     setPendingFiles([]);
+    setAdvisories([]);
     setProgress({ done: 0, total: 0 });
     // Keep the saved branding (logo/header) — "Start over" only clears the
     // uploaded cards, not the one-time logo.
@@ -593,6 +614,8 @@ export default function Home() {
           void handleFiles(f);
         }}
       />
+
+      <UploadAdvisoryModal advisories={advisories} onClose={() => setAdvisories([])} />
     </PublicShell>
   );
 }

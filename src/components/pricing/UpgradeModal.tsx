@@ -40,7 +40,7 @@ export function UpgradeModal({
             <li className="flex items-start gap-2">
               <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
               <span>
-                <strong>Business — ₹3200/mo</strong> · 100 print-ready PDFs,
+                <strong>Business — ₹1960/mo</strong> · 130 print-ready PDFs,
                 priority support.
               </span>
             </li>

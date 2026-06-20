@@ -3,7 +3,7 @@
 --
 -- The month starts at 0 PDFs. PDFs are only granted by redeeming a code you
 -- insert AFTER receiving payment:
---   plan code  (₹3200) -> credits 100
+--   plan code  (₹1960) -> credits 130
 --   top-up code (₹500) -> credits 30
 -- Everything resets to 0 on the 1st (no rollover, no free PDFs).
 --
@@ -70,13 +70,15 @@ begin
   return json_build_object('used', r.used, 'granted', r.granted, 'month', r.period);
 end $$;
 
--- Redeem a one-time code: adds its `credits` (100 plan / 30 top-up) to this month.
+-- Redeem a one-time code: adds its `credits` (130 plan / 30 top-up) to this month.
 create or replace function public.pr_redeem_topup(p_code text) returns json
   language plpgsql security definer set search_path = public as $$
 declare r public.pr_quota; c public.pr_topup_codes;
 begin
   perform public._pr_row();
-  select * into c from public.pr_topup_codes where code = upper(trim(p_code)) for update;
+  -- Case-insensitive match so a code stored in any case still redeems
+  -- (prevents "Invalid code" when a row was inserted with mixed case).
+  select * into c from public.pr_topup_codes where upper(code) = upper(trim(p_code)) for update;
   if c.code is null then
     return json_build_object('ok', false, 'reason', 'Invalid code.');
   end if;
@@ -97,9 +99,30 @@ grant execute on function public.pr_redeem_topup(text) to anon, authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Issue codes AFTER payment (run in the SQL editor, then send the code):
---   Monthly plan (₹3200, 100 PDFs):
---     insert into public.pr_topup_codes(code, credits) values ('PLAN-2026-06', 100);
+--   Monthly plan (₹1960, 130 PDFs) — store the code UPPERCASE:
+--     insert into public.pr_topup_codes(code, credits) values ('PDF-JUNE-2026', 130);
 --   Top-up (₹500, 30 PDFs):
 --     insert into public.pr_topup_codes(code, credits) values ('TOP-2026-06-1', 30);
 -- The code can be any text you like; it works once.
+-- ---------------------------------------------------------------------------
+
+-- ---------------------------------------------------------------------------
+-- Provisioning — MMA client on the ₹1960 / 130-PDF plan.
+-- Idempotent (`on conflict do nothing`), so this block is safe to re-run.
+-- Codes never expire and are never deleted here, so every previously-issued
+-- code stays valid until it is redeemed (each works exactly once).
+-- IMPORTANT: redemption uppercases the entered code, so codes MUST be stored
+-- in UPPERCASE here or they will never match ("Invalid code").
+--   PDF-JUNE-2026 -> 130 PDFs (the monthly plan; matches the GST invoice)
+--   TOP-MMA-JUNE  -> 30  PDFs (a top-up)
+insert into public.pr_topup_codes(code, credits) values ('PDF-JUNE-2026', 130)
+  on conflict (code) do nothing;
+insert into public.pr_topup_codes(code, credits) values ('TOP-MMA-JUNE', 30)
+  on conflict (code) do nothing;
+
+-- DANGER — destructive. Zeroes THIS month's used + granted for the client.
+-- Run ONLY when deliberately starting the client fresh on a new plan, then
+-- re-comment it. Leaving it active makes the script reset usage on every run
+-- (a quota leak). Uncomment, run once, comment again:
+-- update public.pr_quota set used = 0, granted = 0 where client_id = 'default';
 -- ---------------------------------------------------------------------------
