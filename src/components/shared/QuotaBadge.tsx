@@ -59,8 +59,9 @@ export function QuotaBadge() {
         onOpenChange={setTopupOpen}
         usage={usage}
         onRedeemed={() => {
+          // Keep the dialog open so it can switch to the GST-invoice step;
+          // just refresh the live quota behind it.
           void refreshQuota();
-          setTopupOpen(false);
         }}
       />
     </>
