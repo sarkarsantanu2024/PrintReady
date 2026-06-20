@@ -68,11 +68,43 @@ interface ImageBox {
   h: number;
 }
 
+/** Bounding box of the printed text on the page, in PDF coordinates
+ * (y-origin = bottom). Used to locate the photo by layout. `valid` is false
+ * when the page has no usable text so callers fall back to size heuristics. */
+interface TextLayout {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+  valid: boolean;
+}
+
+async function computeTextLayout(page: any): Promise<TextLayout> {
+  const tc = await page.getTextContent();
+  let x0 = Infinity;
+  let y0 = Infinity;
+  let x1 = -Infinity;
+  let y1 = -Infinity;
+  for (const it of tc.items as Array<{ str: string; transform: number[]; width?: number; height?: number }>) {
+    if (!it.str || !it.str.trim()) continue;
+    const x = it.transform[4];
+    const y = it.transform[5];
+    const w = it.width ?? 0;
+    const h = it.height ?? 8;
+    if (x < x0) x0 = x;
+    if (y < y0) y0 = y;
+    if (x + w > x1) x1 = x + w;
+    if (y + h > y1) y1 = y + h;
+  }
+  return { x0, y0, x1, y1, valid: Number.isFinite(x0) && x1 > x0 };
+}
+
 async function extractPhoto(page: any, pdfjs: any): Promise<Uint8Array | null> {
   // Walk the operator list and collect EVERY painted image with the transform
   // matrix in effect at that moment. The matrix is [a b c d e f]; the drawn
   // size is the length of the (a,b) and (c,d) column vectors, and (e, f) is the
   // origin. Origin in PDF = bottom-left.
+  const layout = await computeTextLayout(page);
   const opList = await page.getOperatorList();
 
   const stack: number[][] = [];
@@ -105,7 +137,7 @@ async function extractPhoto(page: any, pdfjs: any): Promise<Uint8Array | null> {
     }
   }
 
-  const imageBbox = pickStudentPhoto(candidates);
+  const imageBbox = pickStudentPhoto(candidates, layout);
   if (!imageBbox) return null;
 
   // Render the full page at high DPI and crop the bbox region.
@@ -134,35 +166,79 @@ async function extractPhoto(page: any, pdfjs: any): Promise<Uint8Array | null> {
   return await canvasToPng(cropCanvas);
 }
 
+/** True when box `a` wraps around box `b` (b's centre lies inside a, and a is
+ * meaningfully larger). Used to spot the full-card raster, which encloses the
+ * header band; the student photo never encloses the header. */
+function encloses(a: ImageBox, b: ImageBox): boolean {
+  if (a === b) return false;
+  if (a.w * a.h < b.w * b.h * 1.5) return false;
+  const cx = b.x + b.w / 2;
+  const cy = b.y + b.h / 2;
+  return cx >= a.x && cx <= a.x + a.w && cy >= a.y && cy <= a.y + a.h;
+}
+
 /**
  * Among all images on the page, choose the one that is the student photograph.
  *
- * A passport-style student photo is always *portrait* (taller than wide). The
- * other images on the page are never portrait: the institute logo/wordmark and
- * orange header band are landscape, and — depending on the exporter version —
- * the card may also contain a flattened raster of the *whole card* (landscape,
- * aspect ~1.45). That full-card raster has the largest drawn area on the page,
- * so a pure area/score ranking would wrongly pick it.
+ * The client can export with any photo (portrait, landscape, square, hi/lo-res)
+ * and different exporter versions, so we must NOT key off the photo's own size.
+ * The other images on the page are predictable artefacts of the card template:
+ *  - the orange header band — very wide (aspect ~5.9);
+ *  - the "Save as PDF" button — wide, to the right, outside the card;
+ *  - a flattened raster of the *whole card* — landscape (~1.45) and the largest
+ *    image, which a naive area ranking would wrongly pick;
+ *  - the institute logo — inside the header band, above the text.
  *
- * Decisive rule: if ANY portrait image exists, the photo is the largest of
- * those, and we never consider a landscape image. Landscape images are only
- * used as a last-resort fallback when the page has no portrait image at all.
+ * The one stable invariant is the card *layout*: the photo always sits in the
+ * left cell — to the LEFT of the text column and vertically beside the text —
+ * whatever its dimensions. So we:
+ *   1. drop very wide bands (header / button);
+ *   2. drop the card chrome (any image that wraps around a band or the whole
+ *      text block);
+ *   3. pick the image in the "photo zone" (centre left of the text column and
+ *      vertically overlapping the text), which is layout-based and size-proof;
+ *   4. fall back to portrait-then-largest when the page has no usable text.
  */
-function pickStudentPhoto(candidates: ImageBox[]): ImageBox | null {
+function pickStudentPhoto(candidates: ImageBox[], layout?: TextLayout): ImageBox | null {
   if (candidates.length === 0) return null;
   if (candidates.length === 1) return candidates[0];
 
-  // The student photo is portrait. Allow a small landscape tolerance (1.1) for
-  // near-square crops, but anything wider (header band, full-card raster) is
-  // excluded from the primary selection regardless of how large it is.
-  const portraits = candidates.filter((c) => c.w / c.h <= 1.1);
-  if (portraits.length > 0) {
-    return portraits.reduce((a, b) => (a.w * a.h >= b.w * b.h ? a : b));
+  // Wide bands (orange header, "Save as PDF" button) are never the photo, but
+  // they mark the chrome that wraps around them. The threshold (2.5) sits safely
+  // above any real photo — even a landscape one is at most ~1.8 once fitted into
+  // the cell — and below the header/button (>4).
+  const bands = candidates.filter((c) => c.w / c.h > 2.5);
+  const textBox: ImageBox | null =
+    layout && layout.valid
+      ? { x: layout.x0, y: layout.y0, w: layout.x1 - layout.x0, h: layout.y1 - layout.y0 }
+      : null;
+  const isCardChrome = (c: ImageBox) =>
+    bands.some((b) => encloses(c, b)) || (textBox ? encloses(c, textBox) : false);
+
+  // Keep non-wide images that aren't the full-card raster.
+  let pool = candidates.filter((c) => c.w / c.h <= 2.5 && !isCardChrome(c));
+  if (pool.length === 0) pool = candidates.filter((c) => c.w / c.h <= 2.5);
+  if (pool.length === 0) pool = candidates.slice();
+
+  // Primary: the photo is the image in the left cell — its horizontal centre is
+  // left of the text column and it overlaps the text vertically. This holds for
+  // any photo size or orientation.
+  if (layout && layout.valid) {
+    const zone = pool.filter((c) => {
+      const centreX = c.x + c.w / 2;
+      const overlapsText = c.y < layout.y1 && c.y + c.h > layout.y0;
+      return centreX < layout.x0 + 5 && overlapsText;
+    });
+    if (zone.length > 0) {
+      return zone.reduce((a, b) => (a.w * a.h >= b.w * b.h ? a : b));
+    }
   }
 
-  // No portrait image on the page — fall back to the largest image so we still
-  // return something rather than nothing.
-  return candidates.reduce((a, b) => (a.w * a.h >= b.w * b.h ? a : b));
+  // Fallback (no text layout / unusual page): prefer a portrait image, else the
+  // largest, so we still return something rather than nothing.
+  const portraits = pool.filter((c) => c.w / c.h <= 1.1);
+  const group = portraits.length > 0 ? portraits : pool;
+  return group.reduce((a, b) => (a.w * a.h >= b.w * b.h ? a : b));
 }
 
 function multiplyMatrix(a: number[], b: number[]): number[] {
