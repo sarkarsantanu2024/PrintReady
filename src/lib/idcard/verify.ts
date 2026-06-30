@@ -58,7 +58,8 @@ export function verifyBaseUrl(): string {
 }
 
 export function verifyUrl(code: string): string {
-  return `${verifyBaseUrl()}/verify/${encodeURIComponent(code)}`;
+  // Short path keeps the QR low-density (more scannable) than /verify/.
+  return `${verifyBaseUrl()}/v/${encodeURIComponent(code)}`;
 }
 
 /** Uint8Array PNG → base64 data URL (for server storage / on-screen preview). */
