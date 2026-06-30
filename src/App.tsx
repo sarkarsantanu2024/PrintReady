@@ -61,6 +61,7 @@ function AppRoutes() {
         <Route path="/reset-password" element={<ResetPassword />} />
         {/* Public card verification (scanned from a printed QR — no auth). */}
         <Route path="/verify/:code" element={<Verify />} />
+        <Route path="/v/:code" element={<Verify />} />
 
         {/* App (protected) */}
         <Route path="/app" element={<Navigate to="/app/editor" replace />} />

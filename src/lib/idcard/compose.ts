@@ -204,32 +204,29 @@ function drawIdCard(
     borderWidth: 1.5,
   });
 
-  // Verifiable-QR (paid add-on) — sits in the free strip BELOW the photo, on
-  // the left column so it never collides with the (wrapping) text block.
+  // Verifiable-QR (paid add-on) — TOP-RIGHT corner of the card body, just below
+  // the header. Sized large enough to scan reliably; the field text below wraps
+  // to a narrower column beside it, then uses full width once it clears the QR.
+  let qrLeftEdge = innerRight - mmToPt(3); // right boundary for text (no QR → full)
+  let qrBottomY = headerTop; // nothing reserved when there's no QR
   if (qrUrl) {
-    const availH = photoY - y; // gap between photo bottom and card bottom edge
-    const qrSize = Math.max(0, Math.min(photoW, availH - mmToPt(1.5)));
-    if (qrSize > mmToPt(6)) {
-      const qrX = photoX;
-      const qrY = y + (availH - qrSize) / 2;
-      drawQr(page, qrUrl, qrX, qrY, qrSize);
-      // Tiny caption to the right of the QR. Constrained to the photo's column
-      // (left of textX) so it can never overlap the wrapping field text.
-      const capX = qrX + qrSize + mmToPt(1.5);
-      const capW = photoX + photoW - capX;
-      if (capW > mmToPt(7)) {
-        drawClipped(page, 'SCAN TO', capX, qrY + qrSize - 4.5, capW, 4.5, fontBold, rgb(0.1, 0.1, 0.1));
-        drawClipped(page, 'VERIFY ID', capX, qrY + qrSize - 10, capW, 4.5, fontBold, rgb(0.1, 0.1, 0.1));
-      }
-    }
+    const qrSize = mmToPt(14);
+    const qrX = innerRight - mmToPt(2.5) - qrSize;
+    const qrY = headerTop - mmToPt(2) - qrSize;
+    drawQr(page, qrUrl, qrX, qrY, qrSize);
+    qrLeftEdge = qrX - mmToPt(2);
+    qrBottomY = qrY - mmToPt(1);
   }
 
-  // Text block to the right of the photo — top-aligned with the photo so the
-  // first label (NAME) lines up with the top edge of the image.
+  // Text block to the right of the photo — top-aligned with the photo.
   const textX = photoX + photoW + mmToPt(3);
-  const textW = innerRight - textX - mmToPt(3);
+  const fullRight = innerRight - mmToPt(3);
   const photoTop = photoY + photoH;
   let cursorY = photoTop - layout.labelSize * 0.72; // 0.72 ≈ Helvetica cap height
+
+  // Usable text width at a baseline y — narrower while beside the QR (top),
+  // full width once we drop below it.
+  const widthAt = (yb: number) => (qrUrl && yb > qrBottomY ? qrLeftEdge : fullRight) - textX;
 
   const fields: { label: string; value: string; isName?: boolean }[] = [
     { label: 'Name', value: card.fields.name, isName: true },
@@ -249,20 +246,40 @@ function drawIdCard(
     });
     cursorY -= layout.labelSize + 2;
     const valSize = isName ? layout.nameSize : layout.valueSize;
-    // Wrap the full value across as many lines as needed (no truncation / "…").
-    const lines = wrapText(value || '—', textW, isName ? fontBold : font, valSize);
-    for (const line of lines) {
-      page.drawText(line, {
+    const valFont = isName ? fontBold : font;
+    const drawLine = (txt: string) => {
+      page.drawText(txt, {
         x: textX,
         y: cursorY,
         size: valSize,
-        font: isName ? fontBold : font,
+        font: valFont,
         color: rgb(valueCol.r, valueCol.g, valueCol.b),
       });
       cursorY -= valSize + 1;
+    };
+    // Wrap with a width that depends on the current line's position (around QR).
+    let line = '';
+    for (const word of (value || '—').split(/\s+/)) {
+      const cand = line ? `${line} ${word}` : word;
+      if (valFont.widthOfTextAtSize(cand, valSize) <= widthAt(cursorY)) {
+        line = cand;
+        continue;
+      }
+      if (line) {
+        drawLine(line);
+        line = '';
+      }
+      const maxW = widthAt(cursorY);
+      if (valFont.widthOfTextAtSize(word, valSize) > maxW) {
+        let t = word;
+        while (t.length > 1 && valFont.widthOfTextAtSize(`${t}…`, valSize) > maxW) t = t.slice(0, -1);
+        drawLine(`${t}…`);
+      } else {
+        line = word;
+      }
     }
-    // Breathing space between fields
-    cursorY -= 1.5;
+    if (line) drawLine(line);
+    cursorY -= 1.5; // breathing space between fields
   }
 }
 
@@ -325,7 +342,9 @@ function drawOuterTrimTicks(
  * so it stays razor-sharp at any print resolution. Includes a white quiet zone.
  */
 function drawQr(page: PDFPage, url: string, x: number, y: number, sizePt: number) {
-  const qr = QRCode.create(url, { errorCorrectionLevel: 'M' });
+  // 'L' keeps the module count (and therefore module size) printable/scannable
+  // for the longish verify URL at ~14 mm.
+  const qr = QRCode.create(url, { errorCorrectionLevel: 'L' });
   const count = qr.modules.size;
   const data = qr.modules.data; // row-major, 1 = dark module
   const quiet = 2; // modules of white margin on every side (scanner requirement)
@@ -366,29 +385,3 @@ function drawClipped(
   page.drawText(out, { x, y, size, font, color });
 }
 
-function wrapText(text: string, maxWidth: number, font: PDFFont, size: number): string[] {
-  if (!text) return [''];
-  const words = text.split(/\s+/);
-  const lines: string[] = [];
-  let line = '';
-  for (const word of words) {
-    const candidate = line ? `${line} ${word}` : word;
-    if (font.widthOfTextAtSize(candidate, size) <= maxWidth) {
-      line = candidate;
-    } else {
-      if (line) lines.push(line);
-      if (font.widthOfTextAtSize(word, size) > maxWidth) {
-        let truncated = word;
-        while (truncated.length > 1 && font.widthOfTextAtSize(truncated + '…', size) > maxWidth) {
-          truncated = truncated.slice(0, -1);
-        }
-        lines.push(truncated + '…');
-        line = '';
-      } else {
-        line = word;
-      }
-    }
-  }
-  if (line) lines.push(line);
-  return lines;
-}
