@@ -16,6 +16,9 @@ import Login from '@/pages/public/Login';
 import Signup from '@/pages/public/Signup';
 import ForgotPassword from '@/pages/public/ForgotPassword';
 import ResetPassword from '@/pages/public/ResetPassword';
+import Verify from '@/pages/public/Verify';
+import AuthPage from '@/pages/public/AuthPage';
+import Profile from '@/pages/public/Profile';
 import NotFound from '@/pages/public/NotFound';
 
 // Lazy: app routes pull in pdf-lib / @react-pdf / pdfjs which are heavy.
@@ -51,8 +54,13 @@ function AppRoutes() {
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/signin" element={<AuthPage initialMode="signin" />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/create-account" element={<AuthPage initialMode="create" />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        {/* Public card verification (scanned from a printed QR — no auth). */}
+        <Route path="/verify/:code" element={<Verify />} />
 
         {/* App (protected) */}
         <Route path="/app" element={<Navigate to="/app/editor" replace />} />

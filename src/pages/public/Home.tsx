@@ -8,6 +8,7 @@ import {
   FileText,
   Loader2,
   Lock,
+  QrCode,
   RotateCcw,
   Scissors,
   Wifi,
@@ -26,21 +27,29 @@ import { IdCardConfig } from "@/components/idcard/IdCardConfig";
 import { CardPreview } from "@/components/idcard/CardPreview";
 import { CardList } from "@/components/idcard/CardList";
 import { IdCardArt } from "@/components/idcard/IdCardArt";
-import { ClientLogin } from "@/components/auth/ClientLogin";
 import { extractIdCard } from "@/lib/idcard/extract";
 import { composeIdCardsPdf } from "@/lib/idcard/compose";
 import { type IdCardLayout } from "@/lib/idcard/layout";
 import { loadBranding, saveBranding } from "@/lib/idcard/branding";
 import type { ExtractedIdCard } from "@/lib/idcard/types";
-import { triggerDownload } from "@/lib/download";
-import { useIsLoggedIn } from "@/lib/clientAuth";
 import {
-  consumeOne,
-  openTopup,
-  QUOTA_ENABLED,
-  refreshQuota,
-  setQuota,
-} from "@/lib/quota";
+  genCardCode,
+  pngToDataUrl,
+  registerCards,
+  verifyUrl,
+  type CardRecord,
+} from "@/lib/idcard/verify";
+import { triggerDownload } from "@/lib/download";
+import { useIsLoggedIn, useSession, openLogin } from "@/lib/clientAuth";
+import { planHasQr, PLANS, type PlanId } from "@/lib/plans";
+import { getMonthUsage, logUsage } from "@/lib/usage";
+import { saveStudents } from "@/lib/students";
+import {
+  getAccountQuota,
+  useAccountQuota,
+  bumpAccountQuota,
+} from "@/lib/accountQuota";
+import { ActivatePlanModal } from "@/components/pricing/ActivatePlanModal";
 
 const MAX_FILES = 10;
 const MAX_SIZE_BYTES = 50 * 1024 * 1024;
@@ -70,25 +79,43 @@ const differentiators = [
   },
 ];
 
-const tiers = [
+const tiers: {
+  name: string;
+  price: string;
+  tag?: string;
+  perks: string[];
+  featured?: boolean;
+  badge?: string;
+}[] = [
   {
-    name: "Free",
-    price: "₹0",
+    name: PLANS.free.label,
+    price: `₹${PLANS.free.monthly}`,
     tag: "Free",
-    perks: ["20 PDFs / mo", "No login", "Auto photo + details"],
+    perks: PLANS.free.features,
   },
   {
-    name: "Business",
-    price: "₹1960",
+    name: PLANS.business.label,
+    price: `₹${PLANS.business.monthly}`,
     tag: "mo",
-    perks: ["130 PDFs / mo", "Login not required", "Priority support"],
+    perks: PLANS.business.features,
     featured: true,
+    badge: "Most popular",
   },
   {
-    name: "Enterprise",
-    price: "₹4500",
+    name: PLANS.enterprise.label,
+    price: `₹${PLANS.enterprise.monthly}`,
     tag: "mo",
-    perks: ["Unlimited PDFs", "Student database", "Dedicated support"],
+    perks: PLANS.enterprise.features,
+  },
+  {
+    name: "Customized",
+    price: "Custom",
+    perks: [
+      "Choose your own PDFs / month",
+      "Price scales with volume",
+      "Generated report",
+      "Dedicated support",
+    ],
   },
 ];
 
@@ -141,6 +168,19 @@ export default function Home() {
   // Branding (logo + header text/colours) is loaded from the last session so
   // the client never has to re-upload the logo.
   const [layout, setLayout] = useState<IdCardLayout>(loadBranding);
+
+  // Verifiable-QR add-on (paid, separate allowance). Off by default; the client
+  // opts in per batch. Each card consumes one QR credit when registered.
+  const [qrEnabled, setQrEnabled] = useState(false);
+  const [activateOpen, setActivateOpen] = useState(false);
+  const session = useSession();
+  // The QR option only appears for plans that include it (Business / Enterprise).
+  const canUseQr = !!session && planHasQr(session.plan);
+  // Per-account allowance for paid plans (null for Free / anonymous / super admin).
+  const isPaidPlan =
+    !!session && session.role === 'user' && !!session.plan && session.plan !== 'free';
+  const acctQuota = useAccountQuota(isPaidPlan ? session!.user : null);
+  const qrRemaining = acctQuota ? Math.max(0, acctQuota.qrGranted - acctQuota.qrUsed) : 0;
 
   // Persist branding whenever it changes.
   useEffect(() => {
@@ -266,28 +306,87 @@ export default function Home() {
     setStep("review");
   };
 
+  // Anonymous visitors are treated as Free (account "guest").
+  const effectivePlan: PlanId = session?.plan ?? "free";
+  const effectiveAccount = session?.user ?? "guest";
+
   const handleGenerate = async () => {
     if (extracted.length === 0) return;
 
-    // Each generated + downloaded print-ready PDF counts as ONE against the
-    // monthly quota. Re-check the live (server) count, then block if exhausted.
-    if (QUOTA_ENABLED) {
-      const fresh = await refreshQuota();
-      if (fresh.remaining < 1) {
-        openTopup();
+    // Quota gate. Paid plans must be ACTIVATED (a redeemed code sets the
+    // allowance); Free uses its built-in monthly allowance.
+    if (isPaidPlan && session) {
+      const q = await getAccountQuota(session.user);
+      if (q.granted <= 0) {
+        toast.error("Your plan isn't active yet — activate it (pay + code) to generate.");
+        setActivateOpen(true);
+        return;
+      }
+      if (q.used >= q.granted) {
+        toast.error(`You've used all ${q.granted} print-ready PDFs this month.`);
+        setActivateOpen(true);
+        return;
+      }
+    } else {
+      const used = await getMonthUsage(effectiveAccount);
+      if (used >= PLANS.free.pdfs) {
         toast.error(
-          `You've used all ${fresh.limit} print-ready PDFs this month. Buy a top-up to generate more.`,
+          `You've used all ${PLANS.free.pdfs} Free PDFs this month — upgrade to a paid plan for more.`,
         );
         return;
       }
     }
 
+    // Verifiable-QR add-on: register every card against the account's QR
+    // allowance BEFORE composing, so an exhausted allowance fails fast.
+    let qrUrls: (string | null)[] | undefined;
+    if (qrEnabled && canUseQr && session) {
+      const q = await getAccountQuota(session.user);
+      const left = Math.max(0, q.qrGranted - q.qrUsed);
+      if (left < extracted.length) {
+        toast.error(
+          `Verifiable QR needs ${extracted.length} card credit${
+            extracted.length === 1 ? "" : "s"
+          }, but only ${left} remain. Activate / top up to continue.`,
+        );
+        setActivateOpen(true);
+        return;
+      }
+      const codes = extracted.map(() => genCardCode());
+      const records: CardRecord[] = extracted.map((card, i) => ({
+        code: codes[i],
+        name: card.fields.name,
+        org: card.fields.centerName || layout.header.companyName,
+        photo: pngToDataUrl(card.photoPng),
+      }));
+      const reg = await registerCards(session.user, records);
+      if (!reg.ok) {
+        toast.error(reg.reason ?? "Couldn't register the verifiable cards.");
+        return;
+      }
+      qrUrls = codes.map((c) => verifyUrl(c));
+    }
+
     setStep("generating");
     try {
-      const blob = await composeIdCardsPdf(extracted, layout);
+      const blob = await composeIdCardsPdf(extracted, layout, { qrUrls });
       triggerDownload(blob, `print-ready-id-cards-${extracted.length}.pdf`);
-      // Bill one print-ready PDF only after a successful generate + download.
-      if (QUOTA_ENABLED) setQuota(await consumeOne());
+      // Record the generation in usage history (drives the quota + report).
+      void logUsage(effectiveAccount, effectivePlan);
+      // Enterprise (and any studentDb plan) keeps a saved student database.
+      if (PLANS[effectivePlan].studentDb) {
+        void saveStudents(
+          effectiveAccount,
+          extracted.map((c) => ({
+            name: c.fields.name,
+            center: c.fields.centerName,
+            phone: c.fields.phone,
+            address: c.fields.address,
+            guardian: c.fields.guardianName,
+          })),
+        );
+      }
+      bumpAccountQuota(); // refresh the header quota badge
       setStep("done");
     } catch (err) {
       toast.error(
@@ -312,16 +411,16 @@ export default function Home() {
     setLayout(loadBranding());
   };
 
-  if (!authed) {
-    return (
-      <PublicShell>
-        <ClientLogin onSuccess={() => void refreshQuota()} />
-      </PublicShell>
-    );
-  }
-
   return (
     <PublicShell>
+      {isPaidPlan && session && (
+        <ActivatePlanModal
+          open={activateOpen}
+          onOpenChange={setActivateOpen}
+          session={session}
+          onActivated={() => undefined}
+        />
+      )}
       {/* Hero */}
       <section className="container py-16 md:py-24">
         {step === "idle" && (
@@ -344,15 +443,39 @@ export default function Home() {
 
             {/* Right: upload box */}
             <div>
-              <DropZone
-                onAccepted={stageFiles}
-                maxSizeBytes={MAX_SIZE_BYTES}
-                multiple
-                accept={{ "application/pdf": [".pdf"] }}
-                primaryLabel="Drop your ID-card PDFs here, or click to browse"
-                formatsLabel="PDF only — up to 50 MB"
-                hint={`Bulk-upload up to ${MAX_FILES} ID-card PDFs at a time. Files are processed entirely in your browser.`}
-              />
+              <div className="relative">
+                <DropZone
+                  onAccepted={stageFiles}
+                  maxSizeBytes={MAX_SIZE_BYTES}
+                  multiple
+                  accept={{ "application/pdf": [".pdf"] }}
+                  disabled={!authed}
+                  primaryLabel={
+                    authed
+                      ? "Drop your ID-card PDFs here, or click to browse"
+                      : "Choose a plan to start uploading"
+                  }
+                  formatsLabel="PDF only — up to 50 MB"
+                  hint={
+                    authed
+                      ? `Bulk-upload up to ${MAX_FILES} ID-card PDFs at a time. Files are processed entirely in your browser.`
+                      : undefined
+                  }
+                />
+                {!authed && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-2xl bg-card/70 backdrop-blur-[1px]">
+                    <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                      <Lock className="h-4 w-4" /> Log in and pick a plan to upload
+                    </p>
+                    <Button size="sm" onClick={openLogin}>
+                      Choose your plan
+                    </Button>
+                    <p className="text-xs text-muted-foreground">
+                      Free needs no password — just choose Free and continue.
+                    </p>
+                  </div>
+                )}
+              </div>
               <div className="mt-10 lg:hidden">
                 <IdCardArt className="mx-auto w-full max-w-xs" />
               </div>
@@ -385,7 +508,31 @@ export default function Home() {
                     updates live. Generate when it looks right.
                   </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  {canUseQr && (
+                    <label
+                      className={[
+                        "flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors",
+                        qrEnabled
+                          ? "border-primary bg-primary/5 text-foreground"
+                          : "border-input text-muted-foreground hover:bg-muted/50",
+                      ].join(" ")}
+                      title="Add a unique, scannable verification QR to every card (paid add-on)."
+                    >
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4 accent-primary"
+                        checked={qrEnabled}
+                        onChange={(e) => setQrEnabled(e.target.checked)}
+                        disabled={step === "generating"}
+                      />
+                      <QrCode className="h-4 w-4" />
+                      <span className="font-medium">Verifiable QR</span>
+                      <span className="text-xs text-muted-foreground">
+                        {qrRemaining} left
+                      </span>
+                    </label>
+                  )}
                   <Button variant="ghost" size="sm" onClick={reset}>
                     <RotateCcw className="mr-1.5 h-4 w-4" /> Start over
                   </Button>
@@ -407,6 +554,16 @@ export default function Home() {
                   </Button>
                 </div>
               </div>
+
+              {qrEnabled && canUseQr && (
+                <p className="mb-6 rounded-md border border-amber-300/60 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
+                  Verifiable QR stores each card's photo, name and organisation
+                  on the server so it can be confirmed when scanned — this is the
+                  only mode that sends card data out of your browser. Uses{" "}
+                  {extracted.length} of your {qrRemaining} remaining QR
+                  card credit{extracted.length === 1 ? "" : "s"}.
+                </p>
+              )}
 
               <div className="grid gap-6 lg:grid-cols-12">
                 <div className="min-w-0 lg:col-span-5">
@@ -539,20 +696,27 @@ export default function Home() {
             Start free. Upgrade only when your team prints more.
           </p>
         </div>
-        <div className="mx-auto mt-10 grid max-w-5xl gap-4 md:grid-cols-3">
+        <div className="mx-auto mt-10 grid max-w-6xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {tiers.map((t) => (
             <Card
               key={t.name}
-              className={`p-6 ${t.featured ? "border-primary ring-1 ring-primary/30" : ""}`}
+              className={`relative p-6 ${t.featured ? "border-primary ring-1 ring-primary/30" : ""}`}
             >
+              {t.badge && (
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground">
+                  {t.badge}
+                </span>
+              )}
               <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
                 {t.name}
               </p>
               <p className="mt-2 text-3xl font-bold">
                 {t.price}
-                <span className="ml-1 text-sm font-medium text-muted-foreground">
-                  /{t.tag}
-                </span>
+                {t.tag && (
+                  <span className="ml-1 text-sm font-medium text-muted-foreground">
+                    /{t.tag}
+                  </span>
+                )}
               </p>
               <ul className="mt-4 space-y-1.5 text-sm">
                 {t.perks.map((p) => (

@@ -1,7 +1,16 @@
-import { Link } from 'react-router-dom';
-import { LogIn, LogOut, Menu, User as UserIcon } from 'lucide-react';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { BarChart3, LogIn, LogOut, Menu, User as UserIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useIsLoggedIn, logout as clientLogout } from '@/lib/clientAuth';
+import {
+  useIsLoggedIn,
+  useSession,
+  logout as clientLogout,
+  openLogin,
+} from '@/lib/clientAuth';
+import { planHasReport } from '@/lib/plans';
+import { ReportModal } from '@/components/report/ReportModal';
+import { AuthModal } from '@/components/auth/AuthModal';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,7 +21,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Logo } from '@/components/shared/Logo';
 import { QuotaBadge } from '@/components/shared/QuotaBadge';
-import { QUOTA_ENABLED } from '@/lib/quota';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/authStore';
@@ -26,6 +34,11 @@ export function TopBar({ variant = 'public', onOpenDrawer }: TopBarProps) {
   const { user, profile, isAuthenticated } = useAuth();
   const reset = useAuthStore((s) => s.reset);
   const clientAuthed = useIsLoggedIn();
+  const navigate = useNavigate();
+  const session = useSession();
+  const [reportOpen, setReportOpen] = useState(false);
+  const canSeeReport =
+    variant === 'public' && session != null && planHasReport(session.plan, session.role);
 
   const onLogout = async () => {
     await supabase.auth.signOut();
@@ -53,27 +66,62 @@ export function TopBar({ variant = 'public', onOpenDrawer }: TopBarProps) {
           </Link>
         </div>
 
-        {variant === 'public' && clientAuthed && QUOTA_ENABLED && (
+        {variant === 'public' && clientAuthed && (
           <div className="shrink-0">
             <QuotaBadge />
           </div>
         )}
 
         <div className="flex flex-1 items-center justify-end gap-2">
+          {canSeeReport && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setReportOpen(true)}
+              title="View your usage & spend report"
+            >
+              <BarChart3 className="mr-1.5 h-4 w-4" /> Report
+            </Button>
+          )}
           {variant === 'public' &&
-            (clientAuthed ? (
-              <Button variant="outline" size="sm" onClick={() => clientLogout()}>
-                <LogOut className="mr-1.5 h-4 w-4" /> Log out
-              </Button>
-            ) : (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-              >
+            (clientAuthed && session ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <UserIcon className="mr-1.5 h-4 w-4" />
+                    <span className="max-w-[8rem] truncate">{session.user}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-52">
+                  <DropdownMenuLabel>
+                    <div className="flex flex-col">
+                      <span className="truncate text-sm font-medium">{session.user}</span>
+                      <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                        {session.role === 'superadmin'
+                          ? 'Super admin'
+                          : `${session.plan ?? 'free'} plan`}
+                      </span>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => navigate('/profile')}>
+                    <UserIcon className="mr-2 h-4 w-4" /> My profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      clientLogout();
+                      navigate('/');
+                    }}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" /> Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : variant === 'public' ? (
+              <Button variant="outline" size="sm" onClick={openLogin}>
                 <LogIn className="mr-1.5 h-4 w-4" /> Log in
               </Button>
-            ))}
+            ) : null)}
 
           {isAuthenticated && (
             <DropdownMenu>
@@ -104,6 +152,11 @@ export function TopBar({ variant = 'public', onOpenDrawer }: TopBarProps) {
           )}
         </div>
       </div>
+
+      {canSeeReport && session && (
+        <ReportModal open={reportOpen} onOpenChange={setReportOpen} session={session} />
+      )}
+      {variant === 'public' && <AuthModal />}
     </header>
   );
 }

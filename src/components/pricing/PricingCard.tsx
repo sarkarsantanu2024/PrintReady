@@ -18,6 +18,10 @@ export interface TierConfig {
   badge?: string;
   ctaLabel: string;
   ctaTo: string;
+  /** When set, shown verbatim instead of the numeric ₹price (e.g. "Custom"). */
+  priceLabel?: string;
+  /** When set, the CTA is an external link (e.g. mailto:) instead of a route. */
+  ctaHref?: string;
 }
 
 interface PricingCardProps {
@@ -58,8 +62,14 @@ export function PricingCard({ tier, billing }: PricingCardProps) {
       </div>
       <p className="text-sm text-muted-foreground">{tier.tagline}</p>
       <div className="mt-4">
-        <span className="text-4xl font-extrabold">₹{price}</span>
-        <span className="ml-1 text-sm text-muted-foreground">{subText}</span>
+        {tier.priceLabel ? (
+          <span className="text-4xl font-extrabold">{tier.priceLabel}</span>
+        ) : (
+          <>
+            <span className="text-4xl font-extrabold">₹{price}</span>
+            <span className="ml-1 text-sm text-muted-foreground">{subText}</span>
+          </>
+        )}
       </div>
 
       <ul className="mt-5 flex-1 space-y-2 text-sm">
@@ -72,7 +82,11 @@ export function PricingCard({ tier, billing }: PricingCardProps) {
       </ul>
 
       <Button asChild className="mt-6" variant={tier.highlight ? 'default' : 'outline'} size="lg">
-        <Link to={tier.ctaTo}>{tier.ctaLabel}</Link>
+        {tier.ctaHref ? (
+          <a href={tier.ctaHref}>{tier.ctaLabel}</a>
+        ) : (
+          <Link to={tier.ctaTo}>{tier.ctaLabel}</Link>
+        )}
       </Button>
     </Card>
   );
