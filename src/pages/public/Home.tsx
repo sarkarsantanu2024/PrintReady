@@ -635,6 +635,7 @@ export default function Home() {
                         layout={layout}
                         sample={extracted[previewIndex]}
                         pxPerMm={previewPx}
+                        qr={qrEnabled && canUseQr}
                       />
                     </div>
                     <p className="mt-3 text-center text-xs text-muted-foreground">

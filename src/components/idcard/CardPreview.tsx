@@ -1,11 +1,15 @@
+import { QRCodeCanvas } from "qrcode.react";
 import type { IdCardLayout } from "@/lib/idcard/layout";
 import type { ExtractedIdCard } from "@/lib/idcard/types";
+import { verifyUrl } from "@/lib/idcard/verify";
 
 interface Props {
   layout: IdCardLayout;
   sample: ExtractedIdCard;
   /** Scale factor for the preview (mm → px). 4 ≈ comfortable on screen. */
   pxPerMm?: number;
+  /** Show the verifiable QR (top-right), matching the printed output. */
+  qr?: boolean;
 }
 
 /**
@@ -13,13 +17,14 @@ interface Props {
  * (different font metrics) but close enough to dial in proportions, colours,
  * and field placement before generating the print-ready file.
  */
-export function CardPreview({ layout, sample, pxPerMm = 4 }: Props) {
+export function CardPreview({ layout, sample, pxPerMm = 4, qr = false }: Props) {
   const w = layout.cardWidthMm * pxPerMm;
   const h = layout.cardHeightMm * pxPerMm;
   const headerH = layout.header.heightMm * pxPerMm;
   const photoW = layout.photoWidthMm * pxPerMm;
   const photoH = layout.photoHeightMm * pxPerMm;
   const photoSrc = sample.photoPng ? bytesToObjectUrl(sample.photoPng) : null;
+  const qrSize = 14 * pxPerMm;
 
   return (
     <div
@@ -103,7 +108,10 @@ export function CardPreview({ layout, sample, pxPerMm = 4 }: Props) {
               />
             )}
           </div>
-          <div className="min-w-0 flex-1">
+          <div
+            className="min-w-0 flex-1"
+            style={qr ? { paddingRight: qrSize + 2 * pxPerMm } : undefined}
+          >
             <Field
               label="Name"
               value={sample.fields.name}
@@ -153,6 +161,23 @@ export function CardPreview({ layout, sample, pxPerMm = 4 }: Props) {
           </div>
         </div>
       </div>
+
+      {qr && (
+        <div
+          style={{
+            position: "absolute",
+            top: headerH + 2 * pxPerMm,
+            right: 2.5 * pxPerMm,
+            background: "#fff",
+            padding: 2,
+            lineHeight: 0,
+            borderRadius: 2,
+          }}
+          title="Sample verify QR — scan to test"
+        >
+          <QRCodeCanvas value={verifyUrl("SAMPLE")} size={qrSize} level="L" marginSize={2} />
+        </div>
+      )}
     </div>
   );
 }
