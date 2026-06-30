@@ -45,6 +45,22 @@ export async function composeIdCardsPdf(
   );
   const logoImage = layout.header.logoPng ? await pdf.embedPng(layout.header.logoPng) : null;
 
+  // Render each verify QR as a crisp PNG (from the qrcode lib) and embed it —
+  // far more reliable/scannable than hand-drawn vector modules.
+  const qrImages = await Promise.all(
+    cards.map(async (_, i) => {
+      const url = options.qrUrls?.[i];
+      if (!url) return null;
+      const dataUrl = await QRCode.toDataURL(url, {
+        errorCorrectionLevel: 'M',
+        margin: 2,
+        width: 320,
+        color: { dark: '#000000', light: '#ffffff' },
+      });
+      return pdf.embedPng(dataUrl);
+    }),
+  );
+
   const sheet = sheetDimensionsPt(layout.pageSize, layout.orientation);
   const cardW = mmToPt(layout.cardWidthMm);
   const cardH = mmToPt(layout.cardHeightMm);
@@ -65,12 +81,12 @@ export async function composeIdCardsPdf(
       const row = Math.floor(idx / FORCED_COLS);
       const x = originX + col * cardW;
       const y = originY + (FORCED_ROWS - 1 - row) * cardH;
-      const qrUrl = options.qrUrls?.[i + idx] ?? null;
+      const qrImg = qrImages[i + idx] ?? null;
       drawIdCard(page, x, y, cardW, cardH, card, batchPhotos[idx], logoImage, layout, {
         font,
         fontBold,
         fontItalic,
-      }, qrUrl);
+      }, qrImg);
     });
 
     drawOuterTrimTicks(page, originX, originY, cardW, cardH);
@@ -91,7 +107,7 @@ function drawIdCard(
   logo: PDFImage | null,
   layout: IdCardLayout,
   fonts: { font: PDFFont; fontBold: PDFFont; fontItalic: PDFFont },
-  qrUrl: string | null = null,
+  qrImg: PDFImage | null = null,
 ) {
   const { font, fontBold, fontItalic } = fonts;
   const cardBg = hexToRgb01(layout.cardBgColor);
@@ -209,11 +225,11 @@ function drawIdCard(
   // to a narrower column beside it, then uses full width once it clears the QR.
   let qrLeftEdge = innerRight - mmToPt(3); // right boundary for text (no QR → full)
   let qrBottomY = headerTop; // nothing reserved when there's no QR
-  if (qrUrl) {
+  if (qrImg) {
     const qrSize = mmToPt(14);
     const qrX = innerRight - mmToPt(2.5) - qrSize;
     const qrY = headerTop - mmToPt(2) - qrSize;
-    drawQr(page, qrUrl, qrX, qrY, qrSize);
+    page.drawImage(qrImg, { x: qrX, y: qrY, width: qrSize, height: qrSize });
     qrLeftEdge = qrX - mmToPt(2);
     qrBottomY = qrY - mmToPt(1);
   }
@@ -226,7 +242,7 @@ function drawIdCard(
 
   // Usable text width at a baseline y — narrower while beside the QR (top),
   // full width once we drop below it.
-  const widthAt = (yb: number) => (qrUrl && yb > qrBottomY ? qrLeftEdge : fullRight) - textX;
+  const widthAt = (yb: number) => (qrImg && yb > qrBottomY ? qrLeftEdge : fullRight) - textX;
 
   const fields: { label: string; value: string; isName?: boolean }[] = [
     { label: 'Name', value: card.fields.name, isName: true },
@@ -337,33 +353,6 @@ function drawOuterTrimTicks(
   }
 }
 
-/**
- * Draws a QR code as crisp VECTOR modules (filled rectangles) — not a raster —
- * so it stays razor-sharp at any print resolution. Includes a white quiet zone.
- */
-function drawQr(page: PDFPage, url: string, x: number, y: number, sizePt: number) {
-  // 'L' keeps the module count (and therefore module size) printable/scannable
-  // for the longish verify URL at ~14 mm.
-  const qr = QRCode.create(url, { errorCorrectionLevel: 'L' });
-  const count = qr.modules.size;
-  const data = qr.modules.data; // row-major, 1 = dark module
-  const quiet = 2; // modules of white margin on every side (scanner requirement)
-  const unit = sizePt / (count + quiet * 2);
-
-  // White background covering the QR + quiet zone.
-  page.drawRectangle({ x, y, width: sizePt, height: sizePt, color: rgb(1, 1, 1) });
-
-  const black = rgb(0, 0, 0);
-  for (let r = 0; r < count; r++) {
-    for (let c = 0; c < count; c++) {
-      if (!data[r * count + c]) continue;
-      // QR row 0 is the TOP row; PDF y grows upward, so flip the row.
-      const mx = x + (quiet + c) * unit;
-      const my = y + sizePt - (quiet + r + 1) * unit;
-      page.drawRectangle({ x: mx, y: my, width: unit, height: unit, color: black });
-    }
-  }
-}
 
 function drawClipped(
   page: PDFPage,
