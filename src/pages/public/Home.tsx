@@ -181,6 +181,9 @@ export default function Home() {
     !!session && session.role === 'user' && !!session.plan && session.plan !== 'free';
   const acctQuota = useAccountQuota(isPaidPlan ? session!.user : null);
   const qrRemaining = acctQuota ? Math.max(0, acctQuota.qrGranted - acctQuota.qrUsed) : 0;
+  // A paid plan must be ACTIVATED (allowance > 0) before uploading; Free is fine.
+  const planActive = !isPaidPlan || (!!acctQuota && acctQuota.granted > 0);
+  const canUpload = authed && planActive;
 
   // Persist branding whenever it changes.
   useEffect(() => {
@@ -449,30 +452,48 @@ export default function Home() {
                   maxSizeBytes={MAX_SIZE_BYTES}
                   multiple
                   accept={{ "application/pdf": [".pdf"] }}
-                  disabled={!authed}
+                  disabled={!canUpload}
                   primaryLabel={
-                    authed
+                    canUpload
                       ? "Drop your ID-card PDFs here, or click to browse"
-                      : "Choose a plan to start uploading"
+                      : !authed
+                        ? "Choose a plan to start uploading"
+                        : "Activate your plan to start uploading"
                   }
                   formatsLabel="PDF only — up to 50 MB"
                   hint={
-                    authed
+                    canUpload
                       ? `Bulk-upload up to ${MAX_FILES} ID-card PDFs at a time. Files are processed entirely in your browser.`
                       : undefined
                   }
                 />
-                {!authed && (
+                {!canUpload && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-2xl bg-card/70 backdrop-blur-[1px]">
-                    <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
-                      <Lock className="h-4 w-4" /> Log in and pick a plan to upload
-                    </p>
-                    <Button size="sm" onClick={openLogin}>
-                      Choose your plan
-                    </Button>
-                    <p className="text-xs text-muted-foreground">
-                      Free needs no password — just choose Free and continue.
-                    </p>
+                    {!authed ? (
+                      <>
+                        <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                          <Lock className="h-4 w-4" /> Log in and pick a plan to upload
+                        </p>
+                        <Button size="sm" onClick={openLogin}>
+                          Choose your plan
+                        </Button>
+                        <p className="text-xs text-muted-foreground">
+                          Free needs no password — just choose Free and continue.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                          <Lock className="h-4 w-4" /> Activate your plan to start uploading
+                        </p>
+                        <Button size="sm" onClick={() => setActivateOpen(true)}>
+                          Activate plan
+                        </Button>
+                        <p className="text-xs text-muted-foreground">
+                          Pay via UPI and enter the code from your admin.
+                        </p>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
