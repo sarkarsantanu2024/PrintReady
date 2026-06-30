@@ -6,9 +6,15 @@ import {
   type PDFImage,
   type PDFPage,
 } from 'pdf-lib';
+import QRCode from 'qrcode';
 import { mmToPt, sheetDimensionsPt } from '@/lib/pdf/units';
 import type { ExtractedIdCard } from './types';
 import { DEFAULT_LAYOUT, hexToRgb01, type IdCardLayout } from './layout';
+
+/** Optional per-card verification URLs (Verifiable-QR add-on), aligned by index. */
+export interface ComposeOptions {
+  qrUrls?: (string | null)[];
+}
 
 // Forced grid — 2 columns × 5 rows = 10 cards per A4 sheet.
 const FORCED_COLS = 2;
@@ -23,6 +29,7 @@ const CARDS_PER_PAGE = FORCED_COLS * FORCED_ROWS;
 export async function composeIdCardsPdf(
   cards: ExtractedIdCard[],
   layout: IdCardLayout = DEFAULT_LAYOUT,
+  options: ComposeOptions = {},
 ): Promise<Blob> {
   const pdf = await PDFDocument.create();
   pdf.setTitle('PrintReady — ID Cards');
@@ -58,11 +65,12 @@ export async function composeIdCardsPdf(
       const row = Math.floor(idx / FORCED_COLS);
       const x = originX + col * cardW;
       const y = originY + (FORCED_ROWS - 1 - row) * cardH;
+      const qrUrl = options.qrUrls?.[i + idx] ?? null;
       drawIdCard(page, x, y, cardW, cardH, card, batchPhotos[idx], logoImage, layout, {
         font,
         fontBold,
         fontItalic,
-      });
+      }, qrUrl);
     });
 
     drawOuterTrimTicks(page, originX, originY, cardW, cardH);
@@ -83,6 +91,7 @@ function drawIdCard(
   logo: PDFImage | null,
   layout: IdCardLayout,
   fonts: { font: PDFFont; fontBold: PDFFont; fontItalic: PDFFont },
+  qrUrl: string | null = null,
 ) {
   const { font, fontBold, fontItalic } = fonts;
   const cardBg = hexToRgb01(layout.cardBgColor);
@@ -195,6 +204,26 @@ function drawIdCard(
     borderWidth: 1.5,
   });
 
+  // Verifiable-QR (paid add-on) — sits in the free strip BELOW the photo, on
+  // the left column so it never collides with the (wrapping) text block.
+  if (qrUrl) {
+    const availH = photoY - y; // gap between photo bottom and card bottom edge
+    const qrSize = Math.max(0, Math.min(photoW, availH - mmToPt(1.5)));
+    if (qrSize > mmToPt(6)) {
+      const qrX = photoX;
+      const qrY = y + (availH - qrSize) / 2;
+      drawQr(page, qrUrl, qrX, qrY, qrSize);
+      // Tiny caption to the right of the QR. Constrained to the photo's column
+      // (left of textX) so it can never overlap the wrapping field text.
+      const capX = qrX + qrSize + mmToPt(1.5);
+      const capW = photoX + photoW - capX;
+      if (capW > mmToPt(7)) {
+        drawClipped(page, 'SCAN TO', capX, qrY + qrSize - 4.5, capW, 4.5, fontBold, rgb(0.1, 0.1, 0.1));
+        drawClipped(page, 'VERIFY ID', capX, qrY + qrSize - 10, capW, 4.5, fontBold, rgb(0.1, 0.1, 0.1));
+      }
+    }
+  }
+
   // Text block to the right of the photo — top-aligned with the photo so the
   // first label (NAME) lines up with the top edge of the image.
   const textX = photoX + photoW + mmToPt(3);
@@ -288,6 +317,32 @@ function drawOuterTrimTicks(
       thickness,
       color,
     });
+  }
+}
+
+/**
+ * Draws a QR code as crisp VECTOR modules (filled rectangles) — not a raster —
+ * so it stays razor-sharp at any print resolution. Includes a white quiet zone.
+ */
+function drawQr(page: PDFPage, url: string, x: number, y: number, sizePt: number) {
+  const qr = QRCode.create(url, { errorCorrectionLevel: 'M' });
+  const count = qr.modules.size;
+  const data = qr.modules.data; // row-major, 1 = dark module
+  const quiet = 2; // modules of white margin on every side (scanner requirement)
+  const unit = sizePt / (count + quiet * 2);
+
+  // White background covering the QR + quiet zone.
+  page.drawRectangle({ x, y, width: sizePt, height: sizePt, color: rgb(1, 1, 1) });
+
+  const black = rgb(0, 0, 0);
+  for (let r = 0; r < count; r++) {
+    for (let c = 0; c < count; c++) {
+      if (!data[r * count + c]) continue;
+      // QR row 0 is the TOP row; PDF y grows upward, so flip the row.
+      const mx = x + (quiet + c) * unit;
+      const my = y + sizePt - (quiet + r + 1) * unit;
+      page.drawRectangle({ x: mx, y: my, width: unit, height: unit, color: black });
+    }
   }
 }
 

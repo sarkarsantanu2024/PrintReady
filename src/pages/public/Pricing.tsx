@@ -3,89 +3,61 @@ import { cn } from '@/lib/utils';
 import { PublicShell } from '@/components/layout/AppShell';
 import { PricingCard, type TierConfig } from '@/components/pricing/PricingCard';
 import { FeatureTable } from '@/components/pricing/FeatureTable';
+import { PLANS } from '@/lib/plans';
 
 const tiers: TierConfig[] = [
   {
     id: 'free',
     name: 'Free',
-    badgeClass: 'bg-slate-500/10 text-slate-600 dark:text-slate-300',
-    tagline: 'Try it out — no account needed.',
-    monthly: 0,
-    yearly: 0,
-    features: [
-      '20 print-ready PDFs per month',
-      'No login required',
-      'Auto-extract photo + details from each PDF',
-      'Print-ready A4 with crop marks',
-      'PDF files only',
-    ],
+    badgeClass: PLANS.free.badgeClass,
+    tagline: PLANS.free.tagline,
+    monthly: PLANS.free.monthly,
+    yearly: PLANS.free.yearly,
+    features: [...PLANS.free.features, 'Print-ready A4 with crop marks'],
     ctaLabel: 'Start free — no login',
     ctaTo: '/',
   },
   {
-    id: 'starter',
-    name: 'Starter',
-    badgeClass: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300',
-    tagline: 'For a single center getting started.',
-    monthly: 699,
-    yearly: 6990,
-    features: [
-      '35 print-ready PDFs per month',
-      'Login not required',
-      'Everything in Free',
-      'No watermark on output',
-    ],
-    ctaLabel: 'Choose Starter',
-    ctaTo: '/signup',
-  },
-  {
     id: 'business',
     name: 'Business',
-    badgeClass: 'bg-amber-500/15 text-amber-700 dark:text-amber-300',
-    tagline: 'For busy centers with regular batches.',
-    monthly: 1960,
-    yearly: 19600,
-    features: [
-      '130 print-ready PDFs per month',
-      'Login not required',
-      'Priority support',
-    ],
+    badgeClass: PLANS.business.badgeClass,
+    tagline: PLANS.business.tagline,
+    monthly: PLANS.business.monthly,
+    yearly: PLANS.business.yearly,
+    features: PLANS.business.features,
     highlight: true,
     badge: 'Most popular',
     ctaLabel: 'Choose Business',
-    ctaTo: '/signup',
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    badgeClass: 'bg-sky-500/10 text-sky-700 dark:text-sky-300',
-    tagline: 'For multi-center brands and franchises.',
-    monthly: 2499,
-    yearly: 24990,
-    features: [
-      '170 print-ready PDFs per month',
-      'Login not required',
-      'Multiple team members',
-      'Multi-center branding',
-    ],
-    ctaLabel: 'Choose Pro',
-    ctaTo: '/signup',
+    ctaTo: '/create-account',
   },
   {
     id: 'enterprise',
     name: 'Enterprise',
-    badgeClass: 'bg-fuchsia-500/10 text-fuchsia-700 dark:text-fuchsia-300',
-    tagline: 'Unlimited volume with a saved student database.',
-    monthly: 4500,
-    yearly: 45000,
+    badgeClass: PLANS.enterprise.badgeClass,
+    tagline: PLANS.enterprise.tagline,
+    monthly: PLANS.enterprise.monthly,
+    yearly: PLANS.enterprise.yearly,
+    features: PLANS.enterprise.features,
+    ctaLabel: 'Choose Enterprise',
+    ctaTo: '/create-account',
+  },
+  {
+    id: 'custom',
+    name: 'Customized',
+    badgeClass: PLANS.custom.badgeClass,
+    tagline: 'Tailored volume, features and pricing for your organisation.',
+    monthly: 0,
+    yearly: 0,
+    priceLabel: 'Custom',
     features: [
-      'Unlimited print-ready PDFs',
-      'Login not required',
-      'Saved student database',
+      'Choose your own PDFs / month',
+      'Price scales with your volume',
+      'Generated report',
+      'Your own login',
       'Dedicated support',
     ],
-    ctaLabel: 'Choose Enterprise',
-    ctaTo: '/signup',
+    ctaLabel: 'Customize your plan',
+    ctaTo: '/create-account',
   },
 ];
 
@@ -100,7 +72,7 @@ const faqs: { q: string; a: string }[] = [
   },
   {
     q: 'Do I need to log in?',
-    a: 'No login is required. Just upload your ID-card PDFs and generate your print-ready sheet — everything runs in your browser.',
+    a: 'Free needs no login. The Business and Enterprise plans require a login (create one on the Create-account page) because they unlock verifiable QR cards and your usage report. Custom plans are set up and managed for you.',
   },
   {
     q: 'When does my monthly quota reset?',
@@ -159,7 +131,7 @@ export default function Pricing() {
           </div>
         </div>
 
-        <div className="mx-auto mt-10 grid max-w-7xl gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="mx-auto mt-10 grid max-w-6xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {tiers.map((t) => (
             <PricingCard key={t.id} tier={t} billing={billing} />
           ))}

@@ -6,92 +6,74 @@ type Cell = boolean | string;
 interface Row {
   label: string;
   free: Cell;
-  starter: Cell;
   business: Cell;
-  pro: Cell;
   enterprise: Cell;
+  custom: Cell;
 }
 
 const rows: Row[] = [
   {
     label: "Print-ready PDFs / month",
-    free: "20",
-    starter: "35",
-    business: "130",
-    pro: "170",
-    enterprise: "Unlimited",
+    free: "10",
+    business: "150",
+    enterprise: "250",
+    custom: "Tailored",
   },
   {
     label: "Monthly price",
     free: "₹0",
-    starter: "₹699",
-    business: "₹1960",
-    pro: "₹2499",
-    enterprise: "₹4500",
+    business: "₹2300",
+    enterprise: "₹3500",
+    custom: "Custom",
+  },
+  {
+    label: "Login required",
+    free: "No",
+    business: "Yes",
+    enterprise: "Yes",
+    custom: "Yes",
   },
   {
     label: "Auto-extract photo + details",
     free: true,
-    starter: true,
     business: true,
-    pro: true,
     enterprise: true,
+    custom: true,
   },
   {
     label: "Print-ready A4 with crop marks",
     free: true,
-    starter: true,
     business: true,
-    pro: true,
     enterprise: true,
+    custom: true,
   },
   {
-    label: "PDF files only",
-    free: true,
-    starter: true,
+    label: "Verifiable QR cards",
+    free: false,
     business: true,
-    pro: true,
     enterprise: true,
+    custom: false,
   },
   {
-    label: "Watermark on output",
-    free: "Yes",
-    starter: "None",
-    business: "None",
-    pro: "None",
-    enterprise: "None",
-  },
-  {
-    label: "Multiple team members",
+    label: "Generated report",
     free: false,
-    starter: false,
-    business: false,
-    pro: true,
+    business: true,
     enterprise: true,
-  },
-  {
-    label: "Multi-center branding",
-    free: false,
-    starter: false,
-    business: false,
-    pro: true,
-    enterprise: true,
+    custom: true,
   },
   {
     label: "Saved student database",
     free: false,
-    starter: false,
     business: false,
-    pro: false,
     enterprise: true,
+    custom: false,
   },
   {
     label: "Support",
     free: "Community",
-    starter: "Email",
-    business: "Priority email",
-    pro: "Priority email",
+    business: "Dedicated",
     enterprise: "Dedicated",
+    custom: "Dedicated",
   },
 ];
 
@@ -111,12 +93,11 @@ export function FeatureTable() {
             <tr className="bg-muted/40 text-left">
               <th className="p-4 font-semibold">Feature</th>
               <th className="p-4 text-center font-semibold">Free</th>
-              <th className="p-4 text-center font-semibold">Starter</th>
               <th className="p-4 text-center font-semibold text-primary">
                 Business
               </th>
-              <th className="p-4 text-center font-semibold">Pro</th>
               <th className="p-4 text-center font-semibold">Enterprise</th>
+              <th className="p-4 text-center font-semibold">Custom</th>
             </tr>
           </thead>
           <tbody>
@@ -127,10 +108,9 @@ export function FeatureTable() {
               >
                 <td className="p-4 font-medium">{r.label}</td>
                 <td className="p-4 text-center">{renderCell(r.free)}</td>
-                <td className="p-4 text-center">{renderCell(r.starter)}</td>
                 <td className="p-4 text-center">{renderCell(r.business)}</td>
-                <td className="p-4 text-center">{renderCell(r.pro)}</td>
                 <td className="p-4 text-center">{renderCell(r.enterprise)}</td>
+                <td className="p-4 text-center">{renderCell(r.custom)}</td>
               </tr>
             ))}
           </tbody>
